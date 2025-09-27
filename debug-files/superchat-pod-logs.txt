@@ -1,0 +1,22 @@
+/usr/lib/python3.12/site-packages/supervisor/options.py:13: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+2025-09-27 07:50:46,165 INFO Set uid to user 0 succeeded
+2025-09-27 07:50:46,167 INFO supervisord started with pid 1
+2025-09-27 07:50:47,169 INFO spawned: 'backend' with pid 7
+2025-09-27 07:50:47,171 INFO spawned: 'nextjs' with pid 8
+2025-09-27 07:50:47,172 INFO spawned: 'nginx' with pid 9
+2025-09-27 07:50:48,251 INFO success: backend entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-27 07:50:48,251 INFO success: nextjs entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2025-09-27 07:50:48,251 INFO success: nginx entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+
+> superchat-code-frontend@1.0.0 start
+> next start
+
+   ▲ Next.js 14.0.4
+   - Local:        http://localhost:3000
+
+ ✓ Ready in 2.4s
+INFO:     Started server process [7]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)

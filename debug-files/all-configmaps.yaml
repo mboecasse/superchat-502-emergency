@@ -1,0 +1,2483 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    check-and-shutdown.sh: "#!/bin/bash\n\n# Auto-shutdown script for Code Server
+      pods\n# Checks for idle time and scales down deployment to save costs\n\nNAMESPACE=\"development\"\nDEPLOYMENT=\"code-server-claude\"\nIDLE_THRESHOLD_MINUTES=240
+      \ # 4 hours\n\necho \"\U0001F50D Checking Code Server activity...\"\n\n# Get
+      pod name\nPOD_NAME=$(kubectl get pods -n $NAMESPACE -l app=code-server-claude
+      -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)\n\nif [ -z \"$POD_NAME\"
+      ]; then\n  echo \"No Code Server pod found. Exiting.\"\n  exit 0\nfi\n\n# Check
+      last access time by examining logs\nLAST_LOG_TIME=$(kubectl logs -n $NAMESPACE
+      $POD_NAME --tail=100 2>/dev/null | grep -E \"GET|POST\" | tail -1 | awk '{print
+      $1\" \"$2}' | tr -d '[]')\n\nif [ -z \"$LAST_LOG_TIME\" ]; then\n  echo \"No
+      activity logs found. Checking pod age...\"\n  # If no logs, check pod creation
+      time\n  POD_AGE_SECONDS=$(kubectl get pod -n $NAMESPACE $POD_NAME -o jsonpath='{.metadata.creationTimestamp}'
+      | xargs -I {} date -d {} +%s | xargs -I {} echo \"$(date +%s) - {}\" | bc)\n
+      \ POD_AGE_MINUTES=$((POD_AGE_SECONDS / 60))\n\n  if [ $POD_AGE_MINUTES -gt $IDLE_THRESHOLD_MINUTES
+      ]; then\n    echo \"⏰ Pod has been running for $POD_AGE_MINUTES minutes with
+      no activity.\"\n    echo \"\U0001F4A4 Scaling down deployment to save costs...\"\n
+      \   kubectl scale deployment/$DEPLOYMENT -n $NAMESPACE --replicas=0\n    echo
+      \"✅ Code Server scaled down. It will restart on next access.\"\n  else\n    echo
+      \"✅ Pod is only $POD_AGE_MINUTES minutes old. Still within active period.\"\n
+      \ fi\nelse\n  # Calculate time since last activity\n  CURRENT_TIME=$(date +%s)\n
+      \ LAST_ACTIVITY=$(date -d \"$LAST_LOG_TIME\" +%s 2>/dev/null || echo $CURRENT_TIME)\n
+      \ IDLE_SECONDS=$((CURRENT_TIME - LAST_ACTIVITY))\n  IDLE_MINUTES=$((IDLE_SECONDS
+      / 60))\n\n  echo \"Last activity: $LAST_LOG_TIME (${IDLE_MINUTES} minutes ago)\"\n\n
+      \ if [ $IDLE_MINUTES -gt $IDLE_THRESHOLD_MINUTES ]; then\n    echo \"⏰ Idle
+      threshold exceeded ($IDLE_MINUTES > $IDLE_THRESHOLD_MINUTES minutes)\"\n    echo
+      \"\U0001F4A4 Scaling down deployment to save costs...\"\n    kubectl scale deployment/$DEPLOYMENT
+      -n $NAMESPACE --replicas=0\n    echo \"✅ Code Server scaled down. It will restart
+      on next access.\"\n  else\n    echo \"✅ Code Server is active. No action needed.\"\n
+      \ fi\nfi\n"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: "{\"apiVersion\":\"v1\",\"data\":{\"check-and-shutdown.sh\":\"#!/bin/bash\\n\\n#
+        Auto-shutdown script for Code Server pods\\n# Checks for idle time and scales
+        down deployment to save costs\\n\\nNAMESPACE=\\\"development\\\"\\nDEPLOYMENT=\\\"code-server-claude\\\"\\nIDLE_THRESHOLD_MINUTES=240
+        \ # 4 hours\\n\\necho \\\"\U0001F50D Checking Code Server activity...\\\"\\n\\n#
+        Get pod name\\nPOD_NAME=$(kubectl get pods -n $NAMESPACE -l app=code-server-claude
+        -o jsonpath='{.items[0].metadata.name}' 2\\u003e/dev/null)\\n\\nif [ -z \\\"$POD_NAME\\\"
+        ]; then\\n  echo \\\"No Code Server pod found. Exiting.\\\"\\n  exit 0\\nfi\\n\\n#
+        Check last access time by examining logs\\nLAST_LOG_TIME=$(kubectl logs -n
+        $NAMESPACE $POD_NAME --tail=100 2\\u003e/dev/null | grep -E \\\"GET|POST\\\"
+        | tail -1 | awk '{print $1\\\" \\\"$2}' | tr -d '[]')\\n\\nif [ -z \\\"$LAST_LOG_TIME\\\"
+        ]; then\\n  echo \\\"No activity logs found. Checking pod age...\\\"\\n  #
+        If no logs, check pod creation time\\n  POD_AGE_SECONDS=$(kubectl get pod
+        -n $NAMESPACE $POD_NAME -o jsonpath='{.metadata.creationTimestamp}' | xargs
+        -I {} date -d {} +%s | xargs -I {} echo \\\"$(date +%s) - {}\\\" | bc)\\n
+        \ POD_AGE_MINUTES=$((POD_AGE_SECONDS / 60))\\n\\n  if [ $POD_AGE_MINUTES -gt
+        $IDLE_THRESHOLD_MINUTES ]; then\\n    echo \\\"⏰ Pod has been running for
+        $POD_AGE_MINUTES minutes with no activity.\\\"\\n    echo \\\"\U0001F4A4 Scaling
+        down deployment to save costs...\\\"\\n    kubectl scale deployment/$DEPLOYMENT
+        -n $NAMESPACE --replicas=0\\n    echo \\\"✅ Code Server scaled down. It will
+        restart on next access.\\\"\\n  else\\n    echo \\\"✅ Pod is only $POD_AGE_MINUTES
+        minutes old. Still within active period.\\\"\\n  fi\\nelse\\n  # Calculate
+        time since last activity\\n  CURRENT_TIME=$(date +%s)\\n  LAST_ACTIVITY=$(date
+        -d \\\"$LAST_LOG_TIME\\\" +%s 2\\u003e/dev/null || echo $CURRENT_TIME)\\n
+        \ IDLE_SECONDS=$((CURRENT_TIME - LAST_ACTIVITY))\\n  IDLE_MINUTES=$((IDLE_SECONDS
+        / 60))\\n\\n  echo \\\"Last activity: $LAST_LOG_TIME (${IDLE_MINUTES} minutes
+        ago)\\\"\\n\\n  if [ $IDLE_MINUTES -gt $IDLE_THRESHOLD_MINUTES ]; then\\n
+        \   echo \\\"⏰ Idle threshold exceeded ($IDLE_MINUTES \\u003e $IDLE_THRESHOLD_MINUTES
+        minutes)\\\"\\n    echo \\\"\U0001F4A4 Scaling down deployment to save costs...\\\"\\n
+        \   kubectl scale deployment/$DEPLOYMENT -n $NAMESPACE --replicas=0\\n    echo
+        \\\"✅ Code Server scaled down. It will restart on next access.\\\"\\n  else\\n
+        \   echo \\\"✅ Code Server is active. No action needed.\\\"\\n  fi\\nfi\\n\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"name\":\"auto-shutdown-script\",\"namespace\":\"development\"}}\n"
+    creationTimestamp: "2025-09-24T23:06:58Z"
+    name: auto-shutdown-script
+    namespace: development
+    resourceVersion: "179598"
+    uid: 364b8000-5819-4ea1-9bf8-4e3c4918050c
+- apiVersion: v1
+  data:
+    install-aws-cli.sh: |
+      #!/bin/bash
+      echo "AWS CLI will be installed via lifecycle hook"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"install-aws-cli.sh":"#!/bin/bash\necho \"AWS CLI will be installed via lifecycle hook\"\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"aws-cli-install","namespace":"development"}}
+    creationTimestamp: "2025-09-24T22:24:40Z"
+    name: aws-cli-install
+    namespace: development
+    resourceVersion: "167386"
+    uid: 2c1348f3-2be6-4528-b84c-e15cc430ef14
+- apiVersion: v1
+  data:
+    claude-cli.py: |-
+      #!/usr/bin/env python3
+      """
+      Claude CLI - A command-line interface for AWS Bedrock Claude models
+      Provides chat and code analysis capabilities using Claude Opus and Sonnet models
+      """
+
+      import os
+      import sys
+      import json
+      import argparse
+      import boto3
+      from typing import Optional, Dict, Any
+      import textwrap
+
+      class ClaudeCLI:
+          def __init__(self):
+              self.bedrock_region = os.environ.get('BEDROCK_REGION', 'us-west-2')
+              self.opus_model = os.environ.get('BEDROCK_MODEL_OPUS',
+                  'arn:aws:bedrock:us-west-2:329599649426:inference-profile/us.anthropic.claude-opus-4-1-20250805-v1:0')
+              self.sonnet_model = os.environ.get('BEDROCK_MODEL_SONNET',
+                  'arn:aws:bedrock:us-west-2:329599649426:inference-profile/global.anthropic.claude-sonnet-4-20250514-v1:0')
+
+              # Initialize Bedrock client
+              self.bedrock = boto3.client(
+                  service_name='bedrock-runtime',
+                  region_name=self.bedrock_region
+              )
+
+          def chat(self, prompt: str, model: str = 'opus', max_tokens: int = 4096) -> str:
+              """Send a chat message to Claude via Bedrock"""
+              model_id = self.opus_model if model == 'opus' else self.sonnet_model
+
+              # Format the request for Claude 3 models
+              request = {
+                  "anthropic_version": "bedrock-2023-05-31",
+                  "max_tokens": max_tokens,
+                  "messages": [
+                      {
+                          "role": "user",
+                          "content": prompt
+                      }
+                  ],
+                  "temperature": 0.7,
+                  "top_p": 0.9
+              }
+
+              try:
+                  response = self.bedrock.invoke_model(
+                      modelId=model_id,
+                      body=json.dumps(request),
+                      contentType='application/json',
+                      accept='application/json'
+                  )
+
+                  response_body = json.loads(response.get('body').read())
+                  return response_body.get('content', [{}])[0].get('text', 'No response received')
+
+              except Exception as e:
+                  return f"Error calling Bedrock: {str(e)}"
+
+          def analyze_code(self, file_path: str, model: str = 'sonnet') -> str:
+              """Analyze code file using Claude"""
+              try:
+                  with open(file_path, 'r') as f:
+                      code = f.read()
+
+                  prompt = f"""Please analyze this code and provide:
+      1. A brief summary of what the code does
+      2. Any potential issues or improvements
+      3. Code quality assessment
+
+      Code from {file_path}:
+      ```
+      {code}
+      ```"""
+
+                  return self.chat(prompt, model=model, max_tokens=8192)
+
+              except FileNotFoundError:
+                  return f"Error: File '{file_path}' not found"
+              except Exception as e:
+                  return f"Error analyzing code: {str(e)}"
+
+          def explain(self, topic: str, model: str = 'opus') -> str:
+              """Get an explanation about a programming topic"""
+              prompt = f"Please explain {topic} in a clear and concise way, with code examples if relevant."
+              return self.chat(prompt, model=model)
+
+          def fix(self, file_path: str, error: str, model: str = 'opus') -> str:
+              """Get help fixing an error in code"""
+              try:
+                  with open(file_path, 'r') as f:
+                      code = f.read()
+
+                  prompt = f"""I'm getting this error in my code:
+      Error: {error}
+
+      Code from {file_path}:
+      ```
+      {code}
+      ```
+
+      Please help me fix this error and explain what was wrong."""
+
+                  return self.chat(prompt, model=model, max_tokens=8192)
+
+              except FileNotFoundError:
+                  return f"Error: File '{file_path}' not found"
+              except Exception as e:
+                  return f"Error: {str(e)}"
+
+      def main():
+          parser = argparse.ArgumentParser(
+              description='Claude CLI - AI assistant powered by AWS Bedrock',
+              formatter_class=argparse.RawDescriptionHelpFormatter,
+              epilog=textwrap.dedent('''
+              Examples:
+                claude chat "How do I create a React component?"
+                claude analyze main.py
+                claude explain "async/await in JavaScript"
+                claude fix app.js "undefined is not a function"
+                claude --model sonnet chat "Quick question about Python"
+              ''')
+          )
+
+          parser.add_argument('--version', action='version', version='Claude CLI 1.0.0 (AWS Bedrock)')
+          parser.add_argument('--model', choices=['opus', 'sonnet'], default='opus',
+                             help='Model to use (opus for complex tasks, sonnet for quick responses)')
+
+          subparsers = parser.add_subparsers(dest='command', help='Commands')
+
+          # Chat command
+          chat_parser = subparsers.add_parser('chat', help='Chat with Claude')
+          chat_parser.add_argument('prompt', help='Your message to Claude')
+          chat_parser.add_argument('--max-tokens', type=int, default=4096, help='Maximum response tokens')
+
+          # Analyze command
+          analyze_parser = subparsers.add_parser('analyze', help='Analyze a code file')
+          analyze_parser.add_argument('file', help='Path to file to analyze')
+
+          # Explain command
+          explain_parser = subparsers.add_parser('explain', help='Get explanation about a topic')
+          explain_parser.add_argument('topic', help='Topic to explain')
+
+          # Fix command
+          fix_parser = subparsers.add_parser('fix', help='Get help fixing an error')
+          fix_parser.add_argument('file', help='Path to file with error')
+          fix_parser.add_argument('error', help='Error message or description')
+
+          # Test command
+          test_parser = subparsers.add_parser('test', help='Test Bedrock connectivity')
+
+          args = parser.parse_args()
+
+          if not args.command:
+              parser.print_help()
+              return
+
+          cli = ClaudeCLI()
+
+          if args.command == 'chat':
+              print(cli.chat(args.prompt, model=args.model, max_tokens=args.max_tokens))
+          elif args.command == 'analyze':
+              print(cli.analyze_code(args.file, model=args.model))
+          elif args.command == 'explain':
+              print(cli.explain(args.topic, model=args.model))
+          elif args.command == 'fix':
+              print(cli.fix(args.file, args.error, model=args.model))
+          elif args.command == 'test':
+              print("Testing Bedrock connectivity...")
+              response = cli.chat("Hello, Claude! Please respond with 'Connection successful!'", model='sonnet', max_tokens=50)
+              print(response)
+              if "successful" in response.lower():
+                  print("\n✅ Bedrock connection test passed!")
+              else:
+                  print("\n❌ Bedrock connection test failed. Check IAM permissions.")
+
+      if __name__ == '__main__':
+          main()
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"claude-cli.py":"#!/usr/bin/env python3\n\"\"\"\nClaude CLI - A command-line interface for AWS Bedrock Claude models\nProvides chat and code analysis capabilities using Claude Opus and Sonnet models\n\"\"\"\n\nimport os\nimport sys\nimport json\nimport argparse\nimport boto3\nfrom typing import Optional, Dict, Any\nimport textwrap\n\nclass ClaudeCLI:\n    def __init__(self):\n        self.bedrock_region = os.environ.get('BEDROCK_REGION', 'us-west-2')\n        self.opus_model = os.environ.get('BEDROCK_MODEL_OPUS',\n            'arn:aws:bedrock:us-west-2:329599649426:inference-profile/us.anthropic.claude-opus-4-1-20250805-v1:0')\n        self.sonnet_model = os.environ.get('BEDROCK_MODEL_SONNET',\n            'arn:aws:bedrock:us-west-2:329599649426:inference-profile/global.anthropic.claude-sonnet-4-20250514-v1:0')\n\n        # Initialize Bedrock client\n        self.bedrock = boto3.client(\n            service_name='bedrock-runtime',\n            region_name=self.bedrock_region\n        )\n\n    def chat(self, prompt: str, model: str = 'opus', max_tokens: int = 4096) -\u003e str:\n        \"\"\"Send a chat message to Claude via Bedrock\"\"\"\n        model_id = self.opus_model if model == 'opus' else self.sonnet_model\n\n        # Format the request for Claude 3 models\n        request = {\n            \"anthropic_version\": \"bedrock-2023-05-31\",\n            \"max_tokens\": max_tokens,\n            \"messages\": [\n                {\n                    \"role\": \"user\",\n                    \"content\": prompt\n                }\n            ],\n            \"temperature\": 0.7,\n            \"top_p\": 0.9\n        }\n\n        try:\n            response = self.bedrock.invoke_model(\n                modelId=model_id,\n                body=json.dumps(request),\n                contentType='application/json',\n                accept='application/json'\n            )\n\n            response_body = json.loads(response.get('body').read())\n            return response_body.get('content', [{}])[0].get('text', 'No response received')\n\n        except Exception as e:\n            return f\"Error calling Bedrock: {str(e)}\"\n\n    def analyze_code(self, file_path: str, model: str = 'sonnet') -\u003e str:\n        \"\"\"Analyze code file using Claude\"\"\"\n        try:\n            with open(file_path, 'r') as f:\n                code = f.read()\n\n            prompt = f\"\"\"Please analyze this code and provide:\n1. A brief summary of what the code does\n2. Any potential issues or improvements\n3. Code quality assessment\n\nCode from {file_path}:\n```\n{code}\n```\"\"\"\n\n            return self.chat(prompt, model=model, max_tokens=8192)\n\n        except FileNotFoundError:\n            return f\"Error: File '{file_path}' not found\"\n        except Exception as e:\n            return f\"Error analyzing code: {str(e)}\"\n\n    def explain(self, topic: str, model: str = 'opus') -\u003e str:\n        \"\"\"Get an explanation about a programming topic\"\"\"\n        prompt = f\"Please explain {topic} in a clear and concise way, with code examples if relevant.\"\n        return self.chat(prompt, model=model)\n\n    def fix(self, file_path: str, error: str, model: str = 'opus') -\u003e str:\n        \"\"\"Get help fixing an error in code\"\"\"\n        try:\n            with open(file_path, 'r') as f:\n                code = f.read()\n\n            prompt = f\"\"\"I'm getting this error in my code:\nError: {error}\n\nCode from {file_path}:\n```\n{code}\n```\n\nPlease help me fix this error and explain what was wrong.\"\"\"\n\n            return self.chat(prompt, model=model, max_tokens=8192)\n\n        except FileNotFoundError:\n            return f\"Error: File '{file_path}' not found\"\n        except Exception as e:\n            return f\"Error: {str(e)}\"\n\ndef main():\n    parser = argparse.ArgumentParser(\n        description='Claude CLI - AI assistant powered by AWS Bedrock',\n        formatter_class=argparse.RawDescriptionHelpFormatter,\n        epilog=textwrap.dedent('''\n        Examples:\n          claude chat \"How do I create a React component?\"\n          claude analyze main.py\n          claude explain \"async/await in JavaScript\"\n          claude fix app.js \"undefined is not a function\"\n          claude --model sonnet chat \"Quick question about Python\"\n        ''')\n    )\n\n    parser.add_argument('--version', action='version', version='Claude CLI 1.0.0 (AWS Bedrock)')\n    parser.add_argument('--model', choices=['opus', 'sonnet'], default='opus',\n                       help='Model to use (opus for complex tasks, sonnet for quick responses)')\n\n    subparsers = parser.add_subparsers(dest='command', help='Commands')\n\n    # Chat command\n    chat_parser = subparsers.add_parser('chat', help='Chat with Claude')\n    chat_parser.add_argument('prompt', help='Your message to Claude')\n    chat_parser.add_argument('--max-tokens', type=int, default=4096, help='Maximum response tokens')\n\n    # Analyze command\n    analyze_parser = subparsers.add_parser('analyze', help='Analyze a code file')\n    analyze_parser.add_argument('file', help='Path to file to analyze')\n\n    # Explain command\n    explain_parser = subparsers.add_parser('explain', help='Get explanation about a topic')\n    explain_parser.add_argument('topic', help='Topic to explain')\n\n    # Fix command\n    fix_parser = subparsers.add_parser('fix', help='Get help fixing an error')\n    fix_parser.add_argument('file', help='Path to file with error')\n    fix_parser.add_argument('error', help='Error message or description')\n\n    # Test command\n    test_parser = subparsers.add_parser('test', help='Test Bedrock connectivity')\n\n    args = parser.parse_args()\n\n    if not args.command:\n        parser.print_help()\n        return\n\n    cli = ClaudeCLI()\n\n    if args.command == 'chat':\n        print(cli.chat(args.prompt, model=args.model, max_tokens=args.max_tokens))\n    elif args.command == 'analyze':\n        print(cli.analyze_code(args.file, model=args.model))\n    elif args.command == 'explain':\n        print(cli.explain(args.topic, model=args.model))\n    elif args.command == 'fix':\n        print(cli.fix(args.file, args.error, model=args.model))\n    elif args.command == 'test':\n        print(\"Testing Bedrock connectivity...\")\n        response = cli.chat(\"Hello, Claude! Please respond with 'Connection successful!'\", model='sonnet', max_tokens=50)\n        print(response)\n        if \"successful\" in response.lower():\n            print(\"\\n✅ Bedrock connection test passed!\")\n        else:\n            print(\"\\n❌ Bedrock connection test failed. Check IAM permissions.\")\n\nif __name__ == '__main__':\n    main()"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"claude-cli-script","namespace":"development"}}
+    creationTimestamp: "2025-09-24T22:24:21Z"
+    name: claude-cli-script
+    namespace: development
+    resourceVersion: "167299"
+    uid: 1347f7b3-78b3-43b0-9288-45dd28213a4f
+- apiVersion: v1
+  data:
+    config.yaml: |
+      bind-addr: 0.0.0.0:8080
+      auth: none
+      cert: false
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"config.yaml":"bind-addr: 0.0.0.0:8080\nauth: none\ncert: false\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"code-server-config","namespace":"development"}}
+    creationTimestamp: "2025-09-24T12:42:11Z"
+    name: code-server-config
+    namespace: development
+    resourceVersion: "8091"
+    uid: f21d2cdd-486c-4c8f-8505-d1b3a9fd6173
+- apiVersion: v1
+  data:
+    ca.crt: |
+      -----BEGIN CERTIFICATE-----
+      MIIDBTCCAe2gAwIBAgIICnVIH+WlHf0wDQYJKoZIhvcNAQELBQAwFTETMBEGA1UE
+      AxMKa3ViZXJuZXRlczAeFw0yNTA5MjQxMTU2MTBaFw0zNTA5MjIxMjAxMTBaMBUx
+      EzARBgNVBAMTCmt1YmVybmV0ZXMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEK
+      AoIBAQDETD+X4lVRqBfz0j9rmVoH6c0mD7UAFtWWO0uTptx1hBYAcU1jH2ibqPnq
+      o3PpBtJxwsUEtlmF3rOyLs78ThPQTO7kPHt8DAcj7NSeF1NY7DHuFs0U4Jqn3p5h
+      vYnN5FFfUPiXgMzyPBcy3/EiQmh8B+YC9VSZ1EeAGS3yWmWdRZBOjMsfF25BgJGt
+      /jU5tvkFhs9lSy33CzlYY7EOauhw9WNBxcH9idxF9rimtMDF7EV0Gfy4yqVpg39h
+      5epSANrryF3iUb1ur70/TzTsAxlWCunQd3qnjTARxm9ZJSn5rcExck/irIRXnBPt
+      pL4ZPBzv2vom4F72zEg7qq1hLRclAgMBAAGjWTBXMA4GA1UdDwEB/wQEAwICpDAP
+      BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBQLTu1o5Bep+2qsfmHvQYkE6Te+CzAV
+      BgNVHREEDjAMggprdWJlcm5ldGVzMA0GCSqGSIb3DQEBCwUAA4IBAQBxyLesECis
+      proe3nrbcBLUgx58x4y02YsVCHnJ9LOHT5Nv37DaGD0VAVHDli4Vck5Gk3QGR2B1
+      OLkHjPl1DNQiXF1ey0TtzEiMdrrfd6mF500XFQOVw2Cs2KP+Z9HOxLsngei1zqWe
+      bqaEsV9PNsmkSJ5QTKGN3rrh5vfr5lLE0G3PyC7XTMvkDyEXlbc+oEPT8RoR7QtG
+      b3sELcmmCpuahElofHzCcTLzN+5MPjaomuwEWbO8/D1c2favCsaUfylZ8zhZ5oSi
+      LecUBB3RtqfAGiCLRaEGdIeB3SJnC2qjwoL4RTtD3pYElmZsQtKdo3psQSKBPhNX
+      BFdnc3lX2MEx
+      -----END CERTIFICATE-----
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubernetes.io/description: Contains a CA bundle that can be used to verify the
+        kube-apiserver when using internal endpoints such as the internal service
+        IP or kubernetes.default.svc. No other usage is guaranteed across distributions
+        of Kubernetes clusters.
+    creationTimestamp: "2025-09-24T12:31:10Z"
+    name: kube-root-ca.crt
+    namespace: development
+    resourceVersion: "5555"
+    uid: c66e4670-745e-4ea9-846d-8fa43a4e83e1
+- apiVersion: v1
+  data:
+    default.conf: |
+      server {
+          listen 8000;
+          client_max_body_size 100M;
+
+          location / {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+
+              # AUTO-INJECT USER MANAGEMENT LOADER INTO EVERY HTML PAGE
+              sub_filter '</head>' '<script src="/user-management-loader.js"></script></head>';
+              sub_filter_once on;
+          }
+
+          location /api {
+              proxy_pass http://127.0.0.1:8001/api;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          location /ws {
+              proxy_pass http://127.0.0.1:8001;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+          }
+
+          location /health {
+              proxy_pass http://127.0.0.1:8001/;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+          }
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"default.conf":"server {\n    listen 8000;\n    client_max_body_size 100M;\n\n    location / {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n\n        # AUTO-INJECT USER MANAGEMENT LOADER INTO EVERY HTML PAGE\n        sub_filter '\u003c/head\u003e' '\u003cscript src=\"/user-management-loader.js\"\u003e\u003c/script\u003e\u003c/head\u003e';\n        sub_filter_once on;\n    }\n\n    location /api {\n        proxy_pass http://127.0.0.1:8001/api;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n\n    location /ws {\n        proxy_pass http://127.0.0.1:8001;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n    }\n\n    location /health {\n        proxy_pass http://127.0.0.1:8001/;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n    }\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"nginx-auto-inject-config","namespace":"development"}}
+    creationTimestamp: "2025-09-26T23:04:28Z"
+    name: nginx-auto-inject-config
+    namespace: development
+    resourceVersion: "1048382"
+    uid: 4fb62105-34aa-435b-aae5-e2929fe04582
+- apiVersion: v1
+  data:
+    default.conf: |-
+      server {
+          listen 8000 default_server;
+          listen [::]:8000 default_server;
+
+          root /app/frontend/public;
+          index index.html index.htm;
+
+          server_name _;
+
+          location / {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+
+              # INJECT AUTO-LOADER SCRIPT
+              sub_filter '</body>' '<script src="/auto-loader.js"></script></body>';
+              sub_filter_once on;
+              sub_filter_types text/html;
+          }
+
+          location /api {
+              proxy_pass http://127.0.0.1:8001/api;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          # Serve static files directly
+          location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+              expires 1h;
+              add_header Cache-Control "public";
+          }
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"default.conf":"server {\n    listen 8000 default_server;\n    listen [::]:8000 default_server;\n\n    root /app/frontend/public;\n    index index.html index.htm;\n\n    server_name _;\n\n    location / {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n\n        # INJECT AUTO-LOADER SCRIPT\n        sub_filter '\u003c/body\u003e' '\u003cscript src=\"/auto-loader.js\"\u003e\u003c/script\u003e\u003c/body\u003e';\n        sub_filter_once on;\n        sub_filter_types text/html;\n    }\n\n    location /api {\n        proxy_pass http://127.0.0.1:8001/api;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n\n    # Serve static files directly\n    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {\n        expires 1h;\n        add_header Cache-Control \"public\";\n    }\n}"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-autoloader-config","namespace":"development"}}
+    creationTimestamp: "2025-09-27T01:08:35Z"
+    name: nginx-autoloader-config
+    namespace: development
+    resourceVersion: "1090000"
+    uid: d73c7af9-854e-4b42-bf7b-724f5f4ea922
+- apiVersion: v1
+  data:
+    default.conf: |-
+      server {
+          listen 8000 default_server;
+          listen [::]:8000 default_server;
+
+          root /app/frontend/public;
+          index index.html index.htm;
+
+          server_name _;
+
+          # Serve Next.js static files directly
+          location /_next/static {
+              proxy_pass http://127.0.0.1:3000/_next/static;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_cache_bypass $http_upgrade;
+              expires 1y;
+              add_header Cache-Control "public, immutable";
+          }
+
+          # Serve public static files
+          location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+              try_files $uri @nextjs;
+              expires 1h;
+              add_header Cache-Control "public";
+          }
+
+          # Main application with auto-loader injection
+          location / {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+
+              # ONLY inject into HTML responses
+              sub_filter_types text/html;
+              sub_filter '</body>' '<script src="/auto-loader.js"></script></body>';
+              sub_filter_once on;
+          }
+
+          # Pass to Next.js for dynamic content
+          location @nextjs {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+
+          location /api {
+              proxy_pass http://127.0.0.1:8001/api;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+          }
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"default.conf":"server {\n    listen 8000 default_server;\n    listen [::]:8000 default_server;\n\n    root /app/frontend/public;\n    index index.html index.htm;\n\n    server_name _;\n\n    # Serve Next.js static files directly\n    location /_next/static {\n        proxy_pass http://127.0.0.1:3000/_next/static;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        expires 1y;\n        add_header Cache-Control \"public, immutable\";\n    }\n\n    # Serve public static files\n    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n        try_files $uri @nextjs;\n        expires 1h;\n        add_header Cache-Control \"public\";\n    }\n\n    # Main application with auto-loader injection\n    location / {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n\n        # ONLY inject into HTML responses\n        sub_filter_types text/html;\n        sub_filter '\u003c/body\u003e' '\u003cscript src=\"/auto-loader.js\"\u003e\u003c/script\u003e\u003c/body\u003e';\n        sub_filter_once on;\n    }\n\n    # Pass to Next.js for dynamic content\n    location @nextjs {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n\n    location /api {\n        proxy_pass http://127.0.0.1:8001/api;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n}"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-fixed-config","namespace":"development"}}
+    creationTimestamp: "2025-09-27T01:18:12Z"
+    name: nginx-fixed-config
+    namespace: development
+    resourceVersion: "1093272"
+    uid: 0743ec85-bcf1-40fd-8638-581cedd6c3a4
+- apiVersion: v1
+  data:
+    default.conf: |-
+      server {
+          listen 8000 default_server;
+          listen [::]:8000 default_server;
+
+          root /app/frontend/public;
+          index index.html index.htm;
+
+          server_name _;
+
+          # WebSocket support configuration
+          map $http_upgrade $connection_upgrade {
+              default upgrade;
+              '' close;
+          }
+
+          # Serve Next.js static files directly
+          location /_next/static {
+              proxy_pass http://127.0.0.1:3000/_next/static;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_cache_bypass $http_upgrade;
+              expires 1y;
+              add_header Cache-Control "public, immutable";
+          }
+
+          # WebSocket endpoint - MUST be before the catch-all /
+          location /_next/webpack-hmr {
+              proxy_pass http://127.0.0.1:3000/_next/webpack-hmr;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $connection_upgrade;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+          }
+
+          # Socket.IO WebSocket support
+          location /socket.io {
+              proxy_pass http://127.0.0.1:3000/socket.io;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $connection_upgrade;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+              proxy_send_timeout 86400;
+          }
+
+          # WebSocket API endpoint
+          location /ws {
+              proxy_pass http://127.0.0.1:3000/ws;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $connection_upgrade;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+              proxy_send_timeout 86400;
+          }
+
+          # Serve public static files
+          location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+              try_files $uri @nextjs;
+              expires 1h;
+              add_header Cache-Control "public";
+          }
+
+          # Main application with auto-loader injection
+          location / {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $connection_upgrade;
+              proxy_read_timeout 86400;
+              proxy_send_timeout 86400;
+
+              # ONLY inject into HTML responses
+              sub_filter_types text/html;
+              sub_filter '</body>' '<script src="/auto-loader.js"></script></body>';
+              sub_filter_once on;
+          }
+
+          # Pass to Next.js for dynamic content
+          location @nextjs {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $connection_upgrade;
+          }
+
+          # API endpoints
+          location /api {
+              proxy_pass http://127.0.0.1:8001/api;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection $connection_upgrade;
+              proxy_read_timeout 86400;
+          }
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"default.conf":"server {\n    listen 8000 default_server;\n    listen [::]:8000 default_server;\n\n    root /app/frontend/public;\n    index index.html index.htm;\n\n    server_name _;\n\n    # WebSocket support configuration\n    map $http_upgrade $connection_upgrade {\n        default upgrade;\n        '' close;\n    }\n\n    # Serve Next.js static files directly\n    location /_next/static {\n        proxy_pass http://127.0.0.1:3000/_next/static;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        expires 1y;\n        add_header Cache-Control \"public, immutable\";\n    }\n\n    # WebSocket endpoint - MUST be before the catch-all /\n    location /_next/webpack-hmr {\n        proxy_pass http://127.0.0.1:3000/_next/webpack-hmr;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection $connection_upgrade;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n    }\n\n    # Socket.IO WebSocket support\n    location /socket.io {\n        proxy_pass http://127.0.0.1:3000/socket.io;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection $connection_upgrade;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n        proxy_send_timeout 86400;\n    }\n\n    # WebSocket API endpoint\n    location /ws {\n        proxy_pass http://127.0.0.1:3000/ws;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection $connection_upgrade;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n        proxy_send_timeout 86400;\n    }\n\n    # Serve public static files\n    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n        try_files $uri @nextjs;\n        expires 1h;\n        add_header Cache-Control \"public\";\n    }\n\n    # Main application with auto-loader injection\n    location / {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection $connection_upgrade;\n        proxy_read_timeout 86400;\n        proxy_send_timeout 86400;\n\n        # ONLY inject into HTML responses\n        sub_filter_types text/html;\n        sub_filter '\u003c/body\u003e' '\u003cscript src=\"/auto-loader.js\"\u003e\u003c/script\u003e\u003c/body\u003e';\n        sub_filter_once on;\n    }\n\n    # Pass to Next.js for dynamic content\n    location @nextjs {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection $connection_upgrade;\n    }\n\n    # API endpoints\n    location /api {\n        proxy_pass http://127.0.0.1:8001/api;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection $connection_upgrade;\n        proxy_read_timeout 86400;\n    }\n}"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-websocket-config","namespace":"development"}}
+    creationTimestamp: "2025-09-27T06:37:57Z"
+    name: nginx-websocket-config
+    namespace: development
+    resourceVersion: "1198975"
+    uid: 2af16589-d3f7-4956-a103-62ad93744417
+- apiVersion: v1
+  data:
+    default.conf: |-
+      # WebSocket support configuration - MUST be outside server block
+      map $http_upgrade $connection_upgrade {
+          default upgrade;
+          '' close;
+      }
+
+      server {
+          listen 8000 default_server;
+          listen [::]:8000 default_server;
+
+          root /app/frontend/public;
+          index index.html index.htm;
+
+          server_name _;
+
+          # Serve Next.js static files directly
+          location /_next/static {
+              proxy_pass http://127.0.0.1:3000/_next/static;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_cache_bypass $http_upgrade;
+              expires 1y;
+              add_header Cache-Control "public, immutable";
+          }
+
+          # WebSocket endpoint - MUST be before the catch-all /
+          location /_next/webpack-hmr {
+              proxy_pass http://127.0.0.1:3000/_next/webpack-hmr;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+          }
+
+          # Socket.IO WebSocket support
+          location /socket.io {
+              proxy_pass http://127.0.0.1:3000/socket.io;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+              proxy_send_timeout 86400;
+          }
+
+          # WebSocket API endpoint
+          location /ws {
+              proxy_pass http://127.0.0.1:3000/ws;
+              proxy_http_version 1.1;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_read_timeout 86400;
+              proxy_send_timeout 86400;
+          }
+
+          # Serve public static files
+          location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
+              try_files $uri @nextjs;
+              expires 1h;
+              add_header Cache-Control "public";
+          }
+
+          # Main application with auto-loader injection
+          location / {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_read_timeout 86400;
+              proxy_send_timeout 86400;
+
+              # ONLY inject into HTML responses
+              sub_filter_types text/html;
+              sub_filter '</body>' '<script src="/auto-loader.js"></script></body>';
+              sub_filter_once on;
+          }
+
+          # Pass to Next.js for dynamic content
+          location @nextjs {
+              proxy_pass http://127.0.0.1:3000;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+          }
+
+          # API endpoints
+          location /api {
+              proxy_pass http://127.0.0.1:8001/api;
+              proxy_http_version 1.1;
+              proxy_set_header Host $host;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header X-Forwarded-Proto $scheme;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_read_timeout 86400;
+          }
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"default.conf":"# WebSocket support configuration - MUST be outside server block\nmap $http_upgrade $connection_upgrade {\n    default upgrade;\n    '' close;\n}\n\nserver {\n    listen 8000 default_server;\n    listen [::]:8000 default_server;\n\n    root /app/frontend/public;\n    index index.html index.htm;\n\n    server_name _;\n\n    # Serve Next.js static files directly\n    location /_next/static {\n        proxy_pass http://127.0.0.1:3000/_next/static;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_cache_bypass $http_upgrade;\n        expires 1y;\n        add_header Cache-Control \"public, immutable\";\n    }\n\n    # WebSocket endpoint - MUST be before the catch-all /\n    location /_next/webpack-hmr {\n        proxy_pass http://127.0.0.1:3000/_next/webpack-hmr;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n    }\n\n    # Socket.IO WebSocket support\n    location /socket.io {\n        proxy_pass http://127.0.0.1:3000/socket.io;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n        proxy_send_timeout 86400;\n    }\n\n    # WebSocket API endpoint\n    location /ws {\n        proxy_pass http://127.0.0.1:3000/ws;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n        proxy_send_timeout 86400;\n    }\n\n    # Serve public static files\n    location ~* \\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {\n        try_files $uri @nextjs;\n        expires 1h;\n        add_header Cache-Control \"public\";\n    }\n\n    # Main application with auto-loader injection\n    location / {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_read_timeout 86400;\n        proxy_send_timeout 86400;\n\n        # ONLY inject into HTML responses\n        sub_filter_types text/html;\n        sub_filter '\u003c/body\u003e' '\u003cscript src=\"/auto-loader.js\"\u003e\u003c/script\u003e\u003c/body\u003e';\n        sub_filter_once on;\n    }\n\n    # Pass to Next.js for dynamic content\n    location @nextjs {\n        proxy_pass http://127.0.0.1:3000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n    }\n\n    # API endpoints\n    location /api {\n        proxy_pass http://127.0.0.1:8001/api;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_read_timeout 86400;\n    }\n}"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"nginx-ws-final","namespace":"development"}}
+    creationTimestamp: "2025-09-27T06:42:00Z"
+    name: nginx-ws-final
+    namespace: development
+    resourceVersion: "1200593"
+    uid: 58156d4b-00b5-4272-993f-0db9cbdb6e19
+- apiVersion: v1
+  data:
+    oauth2-custom-footer.html: |-
+      <!-- OAuth2 Proxy Custom Footer Template -->
+      <script>
+      (function() {
+          // Auto-inject User Management System after OAuth
+          if (!window.UserManagementOAuthInjected) {
+              window.UserManagementOAuthInjected = true;
+              console.log('[OAuth2 Footer] Injecting User Management System...');
+
+              // Wait a bit for the page to load
+              setTimeout(function() {
+                  var script = document.createElement('script');
+                  script.src = '/user-management-loader.js?t=' + Date.now();
+                  script.onload = function() {
+                      console.log('[OAuth2 Footer] User Management loader injected successfully');
+                  };
+                  script.onerror = function() {
+                      console.error('[OAuth2 Footer] Failed to load User Management loader');
+                  };
+                  document.head.appendChild(script);
+              }, 1000);
+          }
+      })();
+      </script>
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"oauth2-custom-footer.html":"\u003c!-- OAuth2 Proxy Custom Footer Template --\u003e\n\u003cscript\u003e\n(function() {\n    // Auto-inject User Management System after OAuth\n    if (!window.UserManagementOAuthInjected) {\n        window.UserManagementOAuthInjected = true;\n        console.log('[OAuth2 Footer] Injecting User Management System...');\n\n        // Wait a bit for the page to load\n        setTimeout(function() {\n            var script = document.createElement('script');\n            script.src = '/user-management-loader.js?t=' + Date.now();\n            script.onload = function() {\n                console.log('[OAuth2 Footer] User Management loader injected successfully');\n            };\n            script.onerror = function() {\n                console.error('[OAuth2 Footer] Failed to load User Management loader');\n            };\n            document.head.appendChild(script);\n        }, 1000);\n    }\n})();\n\u003c/script\u003e"},"kind":"ConfigMap","metadata":{"annotations":{},"creationTimestamp":null,"name":"oauth2-custom-templates","namespace":"development"}}
+    creationTimestamp: "2025-09-27T01:04:23Z"
+    name: oauth2-custom-templates
+    namespace: development
+    resourceVersion: "1088463"
+    uid: e166862e-c41a-4cc3-8026-711ee4ce64f5
+- apiVersion: v1
+  data:
+    oauth2-proxy.cfg: |
+      provider = "google"
+      email_domains = ["*"]
+      upstreams = ["http://superchat-code.development.svc.cluster.local:8000"]
+      http_address = "0.0.0.0:4180"
+      https_address = ""
+      reverse_proxy = true
+      redirect_url = "https://code.mbo9.com/oauth2/callback"
+
+      # Cookie settings - simplified for debugging
+      cookie_secure = true
+      cookie_httponly = true
+      cookie_samesite = "lax"
+      cookie_name = "_oauth2_proxy"
+      cookie_expire = "4h"
+      cookie_refresh = "1h"
+
+      # Authentication settings
+      skip_provider_button = true
+      skip_auth_strip_headers = false
+      pass_authorization_header = true
+      set_authorization_header = true
+      pass_user_headers = true
+      pass_access_token = true
+      set_xauthrequest = true
+      pass_host_header = true
+
+      # Session settings
+      session_store_type = "cookie"
+
+      # Logging
+      standard_logging = true
+      auth_logging = true
+      request_logging = true
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"oauth2-proxy.cfg":"provider = \"google\"\nemail_domains = [\"*\"]\nupstreams = [\"http://superchat-code.development.svc.cluster.local:8000\"]\nhttp_address = \"0.0.0.0:4180\"\nhttps_address = \"\"\nreverse_proxy = true\nredirect_url = \"https://code.mbo9.com/oauth2/callback\"\n\n# Cookie settings - simplified for debugging\ncookie_secure = true\ncookie_httponly = true\ncookie_samesite = \"lax\"\ncookie_name = \"_oauth2_proxy\"\ncookie_expire = \"4h\"\ncookie_refresh = \"1h\"\n\n# Authentication settings\nskip_provider_button = true\nskip_auth_strip_headers = false\npass_authorization_header = true\nset_authorization_header = true\npass_user_headers = true\npass_access_token = true\nset_xauthrequest = true\npass_host_header = true\n\n# Session settings\nsession_store_type = \"cookie\"\n\n# Logging\nstandard_logging = true\nauth_logging = true\nrequest_logging = true\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"oauth2-proxy-config","namespace":"development"}}
+    creationTimestamp: "2025-09-25T12:25:12Z"
+    name: oauth2-proxy-config
+    namespace: development
+    resourceVersion: "435428"
+    uid: 4f6dc10e-6e1b-4f37-8f11-3304feaaed5b
+- apiVersion: v1
+  data:
+    inject-user-management.js: |
+      // Script to inject user management functionality
+      (function() {
+        console.log('Loading User Management integration...');
+
+        // Load the user management script dynamically
+        const script = document.createElement('script');
+        script.src = '/api/user-management/client.js';
+        script.onload = function() {
+          console.log('User Management script loaded successfully');
+          // Initialize user management if the class exists
+          if (typeof UserManagement !== 'undefined') {
+            window.userManagement = new UserManagement();
+            window.userManagement.init();
+          }
+        };
+        script.onerror = function() {
+          console.warn('User Management script could not be loaded');
+        };
+        document.head.appendChild(script);
+      })();
+    user-management-client.js: |
+      // User Management Client Integration
+      class UserManagement {
+        constructor() {
+          this.apiUrl = '/api/user-management';
+          this.currentUser = null;
+          this.users = [];
+          this.stats = {};
+          this.initialized = false;
+        }
+
+        async init() {
+          if (this.initialized) return;
+
+          try {
+            console.log('Initializing User Management...');
+            await this.loadCurrentUser();
+
+            if (this.currentUser && this.currentUser.role === 'super_admin') {
+              await this.loadStats();
+              await this.loadUsers();
+              this.injectSettingsTab();
+              console.log('User Management initialized for super admin');
+            } else {
+              console.log('User Management: Not a super admin, skipping UI injection');
+            }
+
+            this.initialized = true;
+          } catch (error) {
+            console.error('User management init failed:', error);
+          }
+        }
+
+        async loadCurrentUser() {
+          try {
+            // Get current user info from the API using OAuth headers
+            const response = await fetch('/api/user-management/auth/me', {
+              credentials: 'include',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+
+            if (response.ok) {
+              this.currentUser = await response.json();
+            } else {
+              // Simulate getting user from OAuth headers if endpoint doesn't exist yet
+              // This will be replaced when the /auth/me endpoint is implemented
+              this.currentUser = {
+                email: 'mboecasse@gmail.com', // Default for testing
+                role: 'super_admin'
+              };
+            }
+          } catch (error) {
+            console.warn('Could not load current user:', error);
+            // Fallback - assume super admin for now
+            this.currentUser = {
+              email: 'mboecasse@gmail.com',
+              role: 'super_admin'
+            };
+          }
+        }
+
+        async apiCall(endpoint, options = {}) {
+          const response = await fetch(`${this.apiUrl}${endpoint}`, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+              ...options.headers
+            },
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            throw new Error(`API call failed: ${response.statusText}`);
+          }
+
+          return response.json();
+        }
+
+        async loadUsers() {
+          try {
+            this.users = await this.apiCall('/admin/users');
+          } catch (error) {
+            console.error('Failed to load users:', error);
+          }
+        }
+
+        async loadStats() {
+          try {
+            this.stats = await this.apiCall('/admin/stats');
+          } catch (error) {
+            console.error('Failed to load stats:', error);
+          }
+        }
+
+        injectSettingsTab() {
+          // Wait for the settings modal to exist and inject user management
+          const waitForSettings = () => {
+            // Look for common settings selectors
+            const settingsSelectors = [
+              '[data-testid="settings"]',
+              '.settings-modal',
+              '.settings-panel',
+              'button[aria-label*="settings" i]',
+              'button[title*="settings" i]',
+              '.settings-button',
+              '[role="dialog"]'
+            ];
+
+            let settingsElement = null;
+            for (const selector of settingsSelectors) {
+              settingsElement = document.querySelector(selector);
+              if (settingsElement) break;
+            }
+
+            if (settingsElement) {
+              this.enhanceSettings(settingsElement);
+            } else {
+              // If settings not found, observe for dynamic content
+              this.observeForSettings();
+            }
+          };
+
+          // Try immediately
+          waitForSettings();
+
+          // Also try after a delay in case UI is still loading
+          setTimeout(waitForSettings, 2000);
+        }
+
+        observeForSettings() {
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1) {
+                  // Check if this node or its children contain settings
+                  const settingsElement = node.querySelector && (
+                    node.querySelector('.settings-modal') ||
+                    node.querySelector('[role="dialog"]') ||
+                    (node.classList && node.classList.contains('settings-modal'))
+                  );
+
+                  if (settingsElement) {
+                    this.enhanceSettings(settingsElement);
+                    observer.disconnect(); // Stop observing once found
+                  }
+                }
+              });
+            });
+          });
+
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+
+          // Stop observing after 30 seconds
+          setTimeout(() => observer.disconnect(), 30000);
+        }
+
+        enhanceSettings(settingsContainer) {
+          if (settingsContainer.querySelector('#user-management-tab')) {
+            return; // Already enhanced
+          }
+
+          console.log('Enhancing settings with user management...');
+
+          // Create user management tab and content
+          this.createUserManagementTab(settingsContainer);
+        }
+
+        createUserManagementTab(container) {
+          // Find or create tab navigation
+          let tabNav = container.querySelector('.tab-nav, .tabs, nav');
+          if (!tabNav) {
+            tabNav = document.createElement('nav');
+            tabNav.className = 'border-b border-gray-200 mb-4';
+            container.insertBefore(tabNav, container.firstChild);
+          }
+
+          // Add user management tab
+          const userMgmtTab = document.createElement('button');
+          userMgmtTab.id = 'user-management-tab';
+          userMgmtTab.className = 'px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300';
+          userMgmtTab.textContent = 'User Management';
+          userMgmtTab.onclick = () => this.showUserManagement();
+
+          tabNav.appendChild(userMgmtTab);
+
+          // Create user management content panel
+          this.createUserManagementPanel(container);
+        }
+
+        createUserManagementPanel(container) {
+          const panel = document.createElement('div');
+          panel.id = 'user-management-panel';
+          panel.className = 'hidden space-y-6';
+          panel.innerHTML = this.getUserManagementHTML();
+
+          container.appendChild(panel);
+
+          // Setup event handlers
+          this.setupEventHandlers(panel);
+
+          // Populate initial data
+          this.populateUserManagement();
+        }
+
+        getUserManagementHTML() {
+          return `
+            <div class="space-y-6">
+              <!-- Stats Cards -->
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-blue-700">Total Users</h3>
+                  <p class="text-2xl font-bold text-blue-900" id="stat-total">0</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-green-700">Active</h3>
+                  <p class="text-2xl font-bold text-green-900" id="stat-active">0</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-orange-700">Pending</h3>
+                  <p class="text-2xl font-bold text-orange-900" id="stat-pending">0</p>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-purple-700">Developers</h3>
+                  <p class="text-2xl font-bold text-purple-900" id="stat-developers">0</p>
+                </div>
+              </div>
+
+              <!-- Users Table -->
+              <div class="bg-white border rounded-lg overflow-hidden">
+                <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <h3 class="text-lg font-medium text-gray-900">Users</h3>
+                  <button id="refresh-users" class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    Refresh
+                  </button>
+                </div>
+                <div class="overflow-x-auto max-h-96">
+                  <table class="w-full">
+                    <thead class="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="users-table-body" class="divide-y divide-gray-200">
+                      <!-- Users will be populated here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        showUserManagement() {
+          // Hide other panels
+          const panels = document.querySelectorAll('.settings-panel, .tab-content');
+          panels.forEach(panel => panel.classList.add('hidden'));
+
+          // Show user management panel
+          const userMgmtPanel = document.getElementById('user-management-panel');
+          if (userMgmtPanel) {
+            userMgmtPanel.classList.remove('hidden');
+          }
+
+          // Update tab styles
+          const tabs = document.querySelectorAll('.tab-nav button, .tabs button');
+          tabs.forEach(tab => {
+            tab.classList.remove('border-blue-500', 'text-blue-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+          });
+
+          const userMgmtTab = document.getElementById('user-management-tab');
+          if (userMgmtTab) {
+            userMgmtTab.classList.add('border-blue-500', 'text-blue-600');
+            userMgmtTab.classList.remove('border-transparent', 'text-gray-500');
+          }
+        }
+
+        setupEventHandlers(panel) {
+          // Refresh button
+          const refreshBtn = panel.querySelector('#refresh-users');
+          if (refreshBtn) {
+            refreshBtn.onclick = async () => {
+              await this.loadUsers();
+              await this.loadStats();
+              this.populateUserManagement();
+            };
+          }
+
+          // User role/status changes
+          panel.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('user-role') || e.target.classList.contains('user-status')) {
+              const userId = e.target.getAttribute('data-user-id');
+              const user = this.users.find(u => u.id == userId);
+
+              if (!user) return;
+
+              if (e.target.classList.contains('user-role')) {
+                user.role = e.target.value;
+              } else {
+                user.status = e.target.value;
+              }
+
+              try {
+                await this.apiCall(`/admin/users/${userId}`, {
+                  method: 'PUT',
+                  body: JSON.stringify({
+                    role: user.role,
+                    status: user.status,
+                    full_name: user.full_name
+                  })
+                });
+
+                this.showNotification('User updated successfully', 'success');
+                await this.loadStats();
+                this.updateStats();
+              } catch (error) {
+                console.error('Failed to update user:', error);
+                this.showNotification('Failed to update user', 'error');
+                await this.loadUsers();
+                this.populateUserManagement();
+              }
+            }
+          });
+
+          // Delete user
+          panel.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-user')) {
+              const userId = e.target.getAttribute('data-user-id');
+              const user = this.users.find(u => u.id == userId);
+
+              if (!user || user.id === this.currentUser?.id) return;
+
+              if (!confirm(`Are you sure you want to delete ${user.email}?`)) return;
+
+              try {
+                await this.apiCall(`/admin/users/${userId}`, {
+                  method: 'DELETE'
+                });
+
+                this.showNotification('User deleted successfully', 'success');
+                await this.loadUsers();
+                await this.loadStats();
+                this.populateUserManagement();
+              } catch (error) {
+                console.error('Failed to delete user:', error);
+                this.showNotification('Failed to delete user', 'error');
+              }
+            }
+          });
+        }
+
+        populateUserManagement() {
+          this.updateStats();
+          this.populateUsersTable();
+        }
+
+        updateStats() {
+          const elements = {
+            'stat-total': this.stats.total_users || 0,
+            'stat-active': this.stats.active_users || 0,
+            'stat-pending': this.stats.pending_users || 0,
+            'stat-developers': this.stats.developers || 0
+          };
+
+          Object.entries(elements).forEach(([id, value]) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+          });
+        }
+
+        populateUsersTable() {
+          const tbody = document.getElementById('users-table-body');
+          if (!tbody || !this.users.length) return;
+
+          tbody.innerHTML = this.users.map(user => `
+            <tr>
+              <td class="px-4 py-2 text-sm text-gray-900">${user.email}</td>
+              <td class="px-4 py-2 text-sm text-gray-900">${user.full_name || '-'}</td>
+              <td class="px-4 py-2">
+                <select class="user-role text-sm border rounded px-2 py-1" data-user-id="${user.id}">
+                  <option value="pending" ${user.role === 'pending' ? 'selected' : ''}>Pending</option>
+                  <option value="family" ${user.role === 'family' ? 'selected' : ''}>Family</option>
+                  <option value="developer" ${user.role === 'developer' ? 'selected' : ''}>Developer</option>
+                  <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                </select>
+              </td>
+              <td class="px-4 py-2">
+                <select class="user-status text-sm border rounded px-2 py-1" data-user-id="${user.id}">
+                  <option value="pending" ${user.status === 'pending' ? 'selected' : ''}>Pending</option>
+                  <option value="active" ${user.status === 'active' ? 'selected' : ''}>Active</option>
+                  <option value="suspended" ${user.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+                </select>
+              </td>
+              <td class="px-4 py-2">
+                <button class="delete-user text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        data-user-id="${user.id}"
+                        ${user.id === this.currentUser?.id ? 'disabled' : ''}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        showNotification(message, type = 'info') {
+          const notification = document.createElement('div');
+          const colors = {
+            success: 'bg-green-500 text-white',
+            error: 'bg-red-500 text-white',
+            info: 'bg-blue-500 text-white'
+          };
+
+          notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${colors[type]}`;
+          notification.textContent = message;
+          document.body.appendChild(notification);
+
+          setTimeout(() => notification.remove(), 3000);
+        }
+      }
+
+      // Auto-initialize when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          window.userManagement = new UserManagement();
+          window.userManagement.init();
+        });
+      } else {
+        window.userManagement = new UserManagement();
+        window.userManagement.init();
+      }
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"inject-user-management.js":"// Script to inject user management functionality\n(function() {\n  console.log('Loading User Management integration...');\n\n  // Load the user management script dynamically\n  const script = document.createElement('script');\n  script.src = '/api/user-management/client.js';\n  script.onload = function() {\n    console.log('User Management script loaded successfully');\n    // Initialize user management if the class exists\n    if (typeof UserManagement !== 'undefined') {\n      window.userManagement = new UserManagement();\n      window.userManagement.init();\n    }\n  };\n  script.onerror = function() {\n    console.warn('User Management script could not be loaded');\n  };\n  document.head.appendChild(script);\n})();\n","user-management-client.js":"// User Management Client Integration\nclass UserManagement {\n  constructor() {\n    this.apiUrl = '/api/user-management';\n    this.currentUser = null;\n    this.users = [];\n    this.stats = {};\n    this.initialized = false;\n  }\n\n  async init() {\n    if (this.initialized) return;\n\n    try {\n      console.log('Initializing User Management...');\n      await this.loadCurrentUser();\n\n      if (this.currentUser \u0026\u0026 this.currentUser.role === 'super_admin') {\n        await this.loadStats();\n        await this.loadUsers();\n        this.injectSettingsTab();\n        console.log('User Management initialized for super admin');\n      } else {\n        console.log('User Management: Not a super admin, skipping UI injection');\n      }\n\n      this.initialized = true;\n    } catch (error) {\n      console.error('User management init failed:', error);\n    }\n  }\n\n  async loadCurrentUser() {\n    try {\n      // Get current user info from the API using OAuth headers\n      const response = await fetch('/api/user-management/auth/me', {\n        credentials: 'include',\n        headers: {\n          'X-Requested-With': 'XMLHttpRequest'\n        }\n      });\n\n      if (response.ok) {\n        this.currentUser = await response.json();\n      } else {\n        // Simulate getting user from OAuth headers if endpoint doesn't exist yet\n        // This will be replaced when the /auth/me endpoint is implemented\n        this.currentUser = {\n          email: 'mboecasse@gmail.com', // Default for testing\n          role: 'super_admin'\n        };\n      }\n    } catch (error) {\n      console.warn('Could not load current user:', error);\n      // Fallback - assume super admin for now\n      this.currentUser = {\n        email: 'mboecasse@gmail.com',\n        role: 'super_admin'\n      };\n    }\n  }\n\n  async apiCall(endpoint, options = {}) {\n    const response = await fetch(`${this.apiUrl}${endpoint}`, {\n      ...options,\n      headers: {\n        'Content-Type': 'application/json',\n        'X-Requested-With': 'XMLHttpRequest',\n        ...options.headers\n      },\n      credentials: 'include'\n    });\n\n    if (!response.ok) {\n      throw new Error(`API call failed: ${response.statusText}`);\n    }\n\n    return response.json();\n  }\n\n  async loadUsers() {\n    try {\n      this.users = await this.apiCall('/admin/users');\n    } catch (error) {\n      console.error('Failed to load users:', error);\n    }\n  }\n\n  async loadStats() {\n    try {\n      this.stats = await this.apiCall('/admin/stats');\n    } catch (error) {\n      console.error('Failed to load stats:', error);\n    }\n  }\n\n  injectSettingsTab() {\n    // Wait for the settings modal to exist and inject user management\n    const waitForSettings = () =\u003e {\n      // Look for common settings selectors\n      const settingsSelectors = [\n        '[data-testid=\"settings\"]',\n        '.settings-modal',\n        '.settings-panel',\n        'button[aria-label*=\"settings\" i]',\n        'button[title*=\"settings\" i]',\n        '.settings-button',\n        '[role=\"dialog\"]'\n      ];\n\n      let settingsElement = null;\n      for (const selector of settingsSelectors) {\n        settingsElement = document.querySelector(selector);\n        if (settingsElement) break;\n      }\n\n      if (settingsElement) {\n        this.enhanceSettings(settingsElement);\n      } else {\n        // If settings not found, observe for dynamic content\n        this.observeForSettings();\n      }\n    };\n\n    // Try immediately\n    waitForSettings();\n\n    // Also try after a delay in case UI is still loading\n    setTimeout(waitForSettings, 2000);\n  }\n\n  observeForSettings() {\n    const observer = new MutationObserver((mutations) =\u003e {\n      mutations.forEach((mutation) =\u003e {\n        mutation.addedNodes.forEach((node) =\u003e {\n          if (node.nodeType === 1) {\n            // Check if this node or its children contain settings\n            const settingsElement = node.querySelector \u0026\u0026 (\n              node.querySelector('.settings-modal') ||\n              node.querySelector('[role=\"dialog\"]') ||\n              (node.classList \u0026\u0026 node.classList.contains('settings-modal'))\n            );\n\n            if (settingsElement) {\n              this.enhanceSettings(settingsElement);\n              observer.disconnect(); // Stop observing once found\n            }\n          }\n        });\n      });\n    });\n\n    observer.observe(document.body, {\n      childList: true,\n      subtree: true\n    });\n\n    // Stop observing after 30 seconds\n    setTimeout(() =\u003e observer.disconnect(), 30000);\n  }\n\n  enhanceSettings(settingsContainer) {\n    if (settingsContainer.querySelector('#user-management-tab')) {\n      return; // Already enhanced\n    }\n\n    console.log('Enhancing settings with user management...');\n\n    // Create user management tab and content\n    this.createUserManagementTab(settingsContainer);\n  }\n\n  createUserManagementTab(container) {\n    // Find or create tab navigation\n    let tabNav = container.querySelector('.tab-nav, .tabs, nav');\n    if (!tabNav) {\n      tabNav = document.createElement('nav');\n      tabNav.className = 'border-b border-gray-200 mb-4';\n      container.insertBefore(tabNav, container.firstChild);\n    }\n\n    // Add user management tab\n    const userMgmtTab = document.createElement('button');\n    userMgmtTab.id = 'user-management-tab';\n    userMgmtTab.className = 'px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 border-b-2 border-transparent hover:border-gray-300';\n    userMgmtTab.textContent = 'User Management';\n    userMgmtTab.onclick = () =\u003e this.showUserManagement();\n\n    tabNav.appendChild(userMgmtTab);\n\n    // Create user management content panel\n    this.createUserManagementPanel(container);\n  }\n\n  createUserManagementPanel(container) {\n    const panel = document.createElement('div');\n    panel.id = 'user-management-panel';\n    panel.className = 'hidden space-y-6';\n    panel.innerHTML = this.getUserManagementHTML();\n\n    container.appendChild(panel);\n\n    // Setup event handlers\n    this.setupEventHandlers(panel);\n\n    // Populate initial data\n    this.populateUserManagement();\n  }\n\n  getUserManagementHTML() {\n    return `\n      \u003cdiv class=\"space-y-6\"\u003e\n        \u003c!-- Stats Cards --\u003e\n        \u003cdiv class=\"grid grid-cols-2 lg:grid-cols-4 gap-4\"\u003e\n          \u003cdiv class=\"bg-blue-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-blue-700\"\u003eTotal Users\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-blue-900\" id=\"stat-total\"\u003e0\u003c/p\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-green-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-green-700\"\u003eActive\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-green-900\" id=\"stat-active\"\u003e0\u003c/p\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-orange-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-orange-700\"\u003ePending\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-orange-900\" id=\"stat-pending\"\u003e0\u003c/p\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-purple-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-purple-700\"\u003eDevelopers\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-purple-900\" id=\"stat-developers\"\u003e0\u003c/p\u003e\n          \u003c/div\u003e\n        \u003c/div\u003e\n\n        \u003c!-- Users Table --\u003e\n        \u003cdiv class=\"bg-white border rounded-lg overflow-hidden\"\u003e\n          \u003cdiv class=\"px-4 py-3 border-b border-gray-200 flex justify-between items-center\"\u003e\n            \u003ch3 class=\"text-lg font-medium text-gray-900\"\u003eUsers\u003c/h3\u003e\n            \u003cbutton id=\"refresh-users\" class=\"text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600\"\u003e\n              Refresh\n            \u003c/button\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"overflow-x-auto max-h-96\"\u003e\n            \u003ctable class=\"w-full\"\u003e\n              \u003cthead class=\"bg-gray-50 sticky top-0\"\u003e\n                \u003ctr\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eEmail\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eName\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eRole\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eStatus\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eActions\u003c/th\u003e\n                \u003c/tr\u003e\n              \u003c/thead\u003e\n              \u003ctbody id=\"users-table-body\" class=\"divide-y divide-gray-200\"\u003e\n                \u003c!-- Users will be populated here --\u003e\n              \u003c/tbody\u003e\n            \u003c/table\u003e\n          \u003c/div\u003e\n        \u003c/div\u003e\n      \u003c/div\u003e\n    `;\n  }\n\n  showUserManagement() {\n    // Hide other panels\n    const panels = document.querySelectorAll('.settings-panel, .tab-content');\n    panels.forEach(panel =\u003e panel.classList.add('hidden'));\n\n    // Show user management panel\n    const userMgmtPanel = document.getElementById('user-management-panel');\n    if (userMgmtPanel) {\n      userMgmtPanel.classList.remove('hidden');\n    }\n\n    // Update tab styles\n    const tabs = document.querySelectorAll('.tab-nav button, .tabs button');\n    tabs.forEach(tab =\u003e {\n      tab.classList.remove('border-blue-500', 'text-blue-600');\n      tab.classList.add('border-transparent', 'text-gray-500');\n    });\n\n    const userMgmtTab = document.getElementById('user-management-tab');\n    if (userMgmtTab) {\n      userMgmtTab.classList.add('border-blue-500', 'text-blue-600');\n      userMgmtTab.classList.remove('border-transparent', 'text-gray-500');\n    }\n  }\n\n  setupEventHandlers(panel) {\n    // Refresh button\n    const refreshBtn = panel.querySelector('#refresh-users');\n    if (refreshBtn) {\n      refreshBtn.onclick = async () =\u003e {\n        await this.loadUsers();\n        await this.loadStats();\n        this.populateUserManagement();\n      };\n    }\n\n    // User role/status changes\n    panel.addEventListener('change', async (e) =\u003e {\n      if (e.target.classList.contains('user-role') || e.target.classList.contains('user-status')) {\n        const userId = e.target.getAttribute('data-user-id');\n        const user = this.users.find(u =\u003e u.id == userId);\n\n        if (!user) return;\n\n        if (e.target.classList.contains('user-role')) {\n          user.role = e.target.value;\n        } else {\n          user.status = e.target.value;\n        }\n\n        try {\n          await this.apiCall(`/admin/users/${userId}`, {\n            method: 'PUT',\n            body: JSON.stringify({\n              role: user.role,\n              status: user.status,\n              full_name: user.full_name\n            })\n          });\n\n          this.showNotification('User updated successfully', 'success');\n          await this.loadStats();\n          this.updateStats();\n        } catch (error) {\n          console.error('Failed to update user:', error);\n          this.showNotification('Failed to update user', 'error');\n          await this.loadUsers();\n          this.populateUserManagement();\n        }\n      }\n    });\n\n    // Delete user\n    panel.addEventListener('click', async (e) =\u003e {\n      if (e.target.classList.contains('delete-user')) {\n        const userId = e.target.getAttribute('data-user-id');\n        const user = this.users.find(u =\u003e u.id == userId);\n\n        if (!user || user.id === this.currentUser?.id) return;\n\n        if (!confirm(`Are you sure you want to delete ${user.email}?`)) return;\n\n        try {\n          await this.apiCall(`/admin/users/${userId}`, {\n            method: 'DELETE'\n          });\n\n          this.showNotification('User deleted successfully', 'success');\n          await this.loadUsers();\n          await this.loadStats();\n          this.populateUserManagement();\n        } catch (error) {\n          console.error('Failed to delete user:', error);\n          this.showNotification('Failed to delete user', 'error');\n        }\n      }\n    });\n  }\n\n  populateUserManagement() {\n    this.updateStats();\n    this.populateUsersTable();\n  }\n\n  updateStats() {\n    const elements = {\n      'stat-total': this.stats.total_users || 0,\n      'stat-active': this.stats.active_users || 0,\n      'stat-pending': this.stats.pending_users || 0,\n      'stat-developers': this.stats.developers || 0\n    };\n\n    Object.entries(elements).forEach(([id, value]) =\u003e {\n      const el = document.getElementById(id);\n      if (el) el.textContent = value;\n    });\n  }\n\n  populateUsersTable() {\n    const tbody = document.getElementById('users-table-body');\n    if (!tbody || !this.users.length) return;\n\n    tbody.innerHTML = this.users.map(user =\u003e `\n      \u003ctr\u003e\n        \u003ctd class=\"px-4 py-2 text-sm text-gray-900\"\u003e${user.email}\u003c/td\u003e\n        \u003ctd class=\"px-4 py-2 text-sm text-gray-900\"\u003e${user.full_name || '-'}\u003c/td\u003e\n        \u003ctd class=\"px-4 py-2\"\u003e\n          \u003cselect class=\"user-role text-sm border rounded px-2 py-1\" data-user-id=\"${user.id}\"\u003e\n            \u003coption value=\"pending\" ${user.role === 'pending' ? 'selected' : ''}\u003ePending\u003c/option\u003e\n            \u003coption value=\"family\" ${user.role === 'family' ? 'selected' : ''}\u003eFamily\u003c/option\u003e\n            \u003coption value=\"developer\" ${user.role === 'developer' ? 'selected' : ''}\u003eDeveloper\u003c/option\u003e\n            \u003coption value=\"super_admin\" ${user.role === 'super_admin' ? 'selected' : ''}\u003eSuper Admin\u003c/option\u003e\n          \u003c/select\u003e\n        \u003c/td\u003e\n        \u003ctd class=\"px-4 py-2\"\u003e\n          \u003cselect class=\"user-status text-sm border rounded px-2 py-1\" data-user-id=\"${user.id}\"\u003e\n            \u003coption value=\"pending\" ${user.status === 'pending' ? 'selected' : ''}\u003ePending\u003c/option\u003e\n            \u003coption value=\"active\" ${user.status === 'active' ? 'selected' : ''}\u003eActive\u003c/option\u003e\n            \u003coption value=\"suspended\" ${user.status === 'suspended' ? 'selected' : ''}\u003eSuspended\u003c/option\u003e\n          \u003c/select\u003e\n        \u003c/td\u003e\n        \u003ctd class=\"px-4 py-2\"\u003e\n          \u003cbutton class=\"delete-user text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600\"\n                  data-user-id=\"${user.id}\"\n                  ${user.id === this.currentUser?.id ? 'disabled' : ''}\u003e\n            Delete\n          \u003c/button\u003e\n        \u003c/td\u003e\n      \u003c/tr\u003e\n    `).join('');\n  }\n\n  showNotification(message, type = 'info') {\n    const notification = document.createElement('div');\n    const colors = {\n      success: 'bg-green-500 text-white',\n      error: 'bg-red-500 text-white',\n      info: 'bg-blue-500 text-white'\n    };\n\n    notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${colors[type]}`;\n    notification.textContent = message;\n    document.body.appendChild(notification);\n\n    setTimeout(() =\u003e notification.remove(), 3000);\n  }\n}\n\n// Auto-initialize when DOM is ready\nif (document.readyState === 'loading') {\n  document.addEventListener('DOMContentLoaded', () =\u003e {\n    window.userManagement = new UserManagement();\n    window.userManagement.init();\n  });\n} else {\n  window.userManagement = new UserManagement();\n  window.userManagement.init();\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"superchat-frontend-patch","namespace":"development"}}
+    creationTimestamp: "2025-09-26T20:47:22Z"
+    name: superchat-frontend-patch
+    namespace: development
+    resourceVersion: "1002034"
+    uid: 591d1605-a683-4d6a-b54b-f847d69aa0a7
+- apiVersion: v1
+  data:
+    default.conf: "server {\n    listen 80;\n    server_name _;\n    \n    location
+      / {\n        proxy_pass http://localhost:8000;\n        proxy_http_version 1.1;\n
+      \       proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection
+      \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header
+      X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n
+      \       proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout
+      86400;\n    }\n    \n    location /ws {\n        proxy_pass http://localhost:8000;\n
+      \       proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n
+      \       proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host
+      $host;\n        proxy_read_timeout 86400;\n    }\n    \n    location /api {\n
+      \       proxy_pass http://localhost:8000;\n        proxy_http_version 1.1;\n
+      \       proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n
+      \       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header
+      X-Forwarded-Proto $scheme;\n    }\n}\n"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"default.conf":"server {\n    listen 80;\n    server_name _;\n    \n    location / {\n        proxy_pass http://localhost:8000;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n        proxy_read_timeout 86400;\n    }\n    \n    location /ws {\n        proxy_pass http://localhost:8000;\n        proxy_http_version 1.1;\n        proxy_set_header Upgrade $http_upgrade;\n        proxy_set_header Connection \"upgrade\";\n        proxy_set_header Host $host;\n        proxy_read_timeout 86400;\n    }\n    \n    location /api {\n        proxy_pass http://localhost:8000;\n        proxy_http_version 1.1;\n        proxy_set_header Host $host;\n        proxy_set_header X-Real-IP $remote_addr;\n        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto $scheme;\n    }\n}\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"superchat-nginx-config","namespace":"development"}}
+    creationTimestamp: "2025-09-27T07:43:28Z"
+    name: superchat-nginx-config
+    namespace: development
+    resourceVersion: "1221300"
+    uid: 10d242db-6f38-4c3b-b6c7-b20a2de9d470
+- apiVersion: v1
+  data:
+    user-management.js: |
+      // User Management Integration for SuperChat-Code Settings
+      class UserManagement {
+        constructor() {
+          this.apiUrl = '/api/user-management';
+          this.currentUser = null;
+          this.users = [];
+          this.stats = {};
+        }
+
+        async init() {
+          try {
+            await this.loadCurrentUser();
+            await this.loadStats();
+            await this.loadUsers();
+            this.injectSettingsPanel();
+          } catch (error) {
+            console.error('User management init failed:', error);
+          }
+        }
+
+        async apiCall(endpoint, options = {}) {
+          const response = await fetch(`${this.apiUrl}${endpoint}`, {
+            ...options,
+            headers: {
+              'Content-Type': 'application/json',
+              ...options.headers
+            },
+            credentials: 'include'
+          });
+
+          if (!response.ok) {
+            throw new Error(`API call failed: ${response.statusText}`);
+          }
+
+          return response.json();
+        }
+
+        async loadCurrentUser() {
+          try {
+            // Get current user from OAuth headers
+            const response = await fetch('/api/user-management/auth/me', {
+              credentials: 'include'
+            });
+            if (response.ok) {
+              this.currentUser = await response.json();
+            }
+          } catch (error) {
+            console.warn('Could not load current user:', error);
+          }
+        }
+
+        async loadUsers() {
+          if (!this.currentUser || this.currentUser.role !== 'super_admin') {
+            return;
+          }
+
+          try {
+            this.users = await this.apiCall('/admin/users');
+          } catch (error) {
+            console.error('Failed to load users:', error);
+          }
+        }
+
+        async loadStats() {
+          if (!this.currentUser || this.currentUser.role !== 'super_admin') {
+            return;
+          }
+
+          try {
+            this.stats = await this.apiCall('/admin/stats');
+          } catch (error) {
+            console.error('Failed to load stats:', error);
+          }
+        }
+
+        injectSettingsPanel() {
+          // Wait for the settings modal to exist
+          const checkForSettings = () => {
+            const settingsButton = document.querySelector('[data-testid="settings-button"], .settings-button, button[aria-label*="settings" i]');
+            if (settingsButton) {
+              this.enhanceSettingsModal();
+            } else {
+              setTimeout(checkForSettings, 1000);
+            }
+          };
+          checkForSettings();
+        }
+
+        enhanceSettingsModal() {
+          // Find the settings modal/panel
+          const settingsModal = document.querySelector('.settings-modal, .settings-panel, [role="dialog"]');
+
+          if (!settingsModal) {
+            // Create settings enhancement when modal opens
+            this.observeSettingsModal();
+            return;
+          }
+
+          this.addUserManagementTab(settingsModal);
+        }
+
+        observeSettingsModal() {
+          const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+              mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1 && (
+                  node.classList?.contains('settings-modal') ||
+                  node.querySelector?.('.settings-modal') ||
+                  node.getAttribute?.('role') === 'dialog'
+                )) {
+                  this.addUserManagementTab(node);
+                }
+              });
+            });
+          });
+
+          observer.observe(document.body, {
+            childList: true,
+            subtree: true
+          });
+        }
+
+        addUserManagementTab(settingsContainer) {
+          if (!this.currentUser || this.currentUser.role !== 'super_admin') {
+            return;
+          }
+
+          // Check if already added
+          if (settingsContainer.querySelector('#user-management-tab')) {
+            return;
+          }
+
+          // Find tabs container or create one
+          let tabsContainer = settingsContainer.querySelector('.settings-tabs, .tab-list, nav');
+          let contentContainer = settingsContainer.querySelector('.settings-content, .tab-content, .modal-body');
+
+          if (!tabsContainer) {
+            // Create tabs structure if it doesn't exist
+            const settingsContent = settingsContainer.querySelector('.settings-content') || settingsContainer;
+
+            tabsContainer = document.createElement('div');
+            tabsContainer.className = 'border-b border-gray-200 mb-4';
+            tabsContainer.innerHTML = `
+              <nav class="flex space-x-8">
+                <button class="settings-tab active py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm"
+                        data-tab="general">General</button>
+                <button class="settings-tab py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm"
+                        data-tab="user-management" id="user-management-tab">User Management</button>
+              </nav>
+            `;
+
+            contentContainer = document.createElement('div');
+            contentContainer.className = 'settings-content';
+
+            settingsContent.insertBefore(tabsContainer, settingsContent.firstChild);
+            settingsContent.appendChild(contentContainer);
+          } else {
+            // Add user management tab to existing tabs
+            const userMgmtTab = document.createElement('button');
+            userMgmtTab.id = 'user-management-tab';
+            userMgmtTab.className = 'settings-tab py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm';
+            userMgmtTab.setAttribute('data-tab', 'user-management');
+            userMgmtTab.textContent = 'User Management';
+            tabsContainer.appendChild(userMgmtTab);
+          }
+
+          // Add user management content
+          this.addUserManagementContent(contentContainer);
+
+          // Add tab switching functionality
+          this.setupTabSwitching(settingsContainer);
+        }
+
+        addUserManagementContent(container) {
+          const userMgmtContent = document.createElement('div');
+          userMgmtContent.id = 'user-management-content';
+          userMgmtContent.className = 'tab-content hidden';
+          userMgmtContent.innerHTML = `
+            <div class="space-y-6">
+              <!-- Stats Cards -->
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-blue-700">Total Users</h3>
+                  <p class="text-2xl font-bold text-blue-900" id="stat-total">${this.stats.total_users || 0}</p>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-green-700">Active</h3>
+                  <p class="text-2xl font-bold text-green-900" id="stat-active">${this.stats.active_users || 0}</p>
+                </div>
+                <div class="bg-orange-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-orange-700">Pending</h3>
+                  <p class="text-2xl font-bold text-orange-900" id="stat-pending">${this.stats.pending_users || 0}</p>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                  <h3 class="text-sm font-medium text-purple-700">Developers</h3>
+                  <p class="text-2xl font-bold text-purple-900" id="stat-developers">${this.stats.developers || 0}</p>
+                </div>
+              </div>
+
+              <!-- Users Table -->
+              <div class="bg-white border rounded-lg">
+                <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <h3 class="text-lg font-medium text-gray-900">Users</h3>
+                  <button id="refresh-users" class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600">
+                    Refresh
+                  </button>
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="users-table-body" class="divide-y divide-gray-200">
+                      <!-- Users will be populated here -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+
+          container.appendChild(userMgmtContent);
+          this.populateUsersTable();
+          this.setupUserManagementHandlers();
+        }
+
+        populateUsersTable() {
+          const tbody = document.getElementById('users-table-body');
+          if (!tbody) return;
+
+          tbody.innerHTML = this.users.map(user => `
+            <tr>
+              <td class="px-4 py-2 text-sm text-gray-900">${user.email}</td>
+              <td class="px-4 py-2 text-sm text-gray-900">${user.full_name || '-'}</td>
+              <td class="px-4 py-2">
+                <select class="user-role text-sm border rounded px-2 py-1" data-user-id="${user.id}">
+                  <option value="pending" ${user.role === 'pending' ? 'selected' : ''}>Pending</option>
+                  <option value="family" ${user.role === 'family' ? 'selected' : ''}>Family</option>
+                  <option value="developer" ${user.role === 'developer' ? 'selected' : ''}>Developer</option>
+                  <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                </select>
+              </td>
+              <td class="px-4 py-2">
+                <select class="user-status text-sm border rounded px-2 py-1" data-user-id="${user.id}">
+                  <option value="pending" ${user.status === 'pending' ? 'selected' : ''}>Pending</option>
+                  <option value="active" ${user.status === 'active' ? 'selected' : ''}>Active</option>
+                  <option value="suspended" ${user.status === 'suspended' ? 'selected' : ''}>Suspended</option>
+                </select>
+              </td>
+              <td class="px-4 py-2">
+                <button class="delete-user text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                        data-user-id="${user.id}"
+                        ${user.id === this.currentUser?.id ? 'disabled' : ''}>
+                  Delete
+                </button>
+              </td>
+            </tr>
+          `).join('');
+        }
+
+        setupUserManagementHandlers() {
+          // Refresh button
+          document.getElementById('refresh-users')?.addEventListener('click', async () => {
+            await this.loadUsers();
+            await this.loadStats();
+            this.populateUsersTable();
+            this.updateStats();
+          });
+
+          // User role/status changes
+          document.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('user-role') || e.target.classList.contains('user-status')) {
+              const userId = e.target.getAttribute('data-user-id');
+              const user = this.users.find(u => u.id == userId);
+
+              if (!user) return;
+
+              if (e.target.classList.contains('user-role')) {
+                user.role = e.target.value;
+              } else {
+                user.status = e.target.value;
+              }
+
+              try {
+                await this.apiCall(`/admin/users/${userId}`, {
+                  method: 'PUT',
+                  body: JSON.stringify({
+                    role: user.role,
+                    status: user.status,
+                    full_name: user.full_name
+                  })
+                });
+
+                // Show success feedback
+                this.showNotification('User updated successfully', 'success');
+                await this.loadStats();
+                this.updateStats();
+              } catch (error) {
+                console.error('Failed to update user:', error);
+                this.showNotification('Failed to update user', 'error');
+                // Revert change
+                await this.loadUsers();
+                this.populateUsersTable();
+              }
+            }
+          });
+
+          // Delete user
+          document.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-user')) {
+              const userId = e.target.getAttribute('data-user-id');
+              const user = this.users.find(u => u.id == userId);
+
+              if (!user || user.id === this.currentUser?.id) return;
+
+              if (!confirm(`Are you sure you want to delete ${user.email}?`)) return;
+
+              try {
+                await this.apiCall(`/admin/users/${userId}`, {
+                  method: 'DELETE'
+                });
+
+                this.showNotification('User deleted successfully', 'success');
+                await this.loadUsers();
+                await this.loadStats();
+                this.populateUsersTable();
+                this.updateStats();
+              } catch (error) {
+                console.error('Failed to delete user:', error);
+                this.showNotification('Failed to delete user', 'error');
+              }
+            }
+          });
+        }
+
+        updateStats() {
+          document.getElementById('stat-total').textContent = this.stats.total_users || 0;
+          document.getElementById('stat-active').textContent = this.stats.active_users || 0;
+          document.getElementById('stat-pending').textContent = this.stats.pending_users || 0;
+          document.getElementById('stat-developers').textContent = this.stats.developers || 0;
+        }
+
+        setupTabSwitching(container) {
+          const tabs = container.querySelectorAll('.settings-tab');
+          const contents = container.querySelectorAll('.tab-content');
+
+          tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+              const targetTab = tab.getAttribute('data-tab');
+
+              // Update tab states
+              tabs.forEach(t => {
+                t.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                t.classList.add('border-transparent', 'text-gray-500');
+              });
+
+              tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+              tab.classList.remove('border-transparent', 'text-gray-500');
+
+              // Update content visibility
+              contents.forEach(content => {
+                content.classList.add('hidden');
+              });
+
+              const targetContent = container.querySelector(`#${targetTab}-content`) ||
+                                    container.querySelector(`[data-tab-content="${targetTab}"]`);
+              if (targetContent) {
+                targetContent.classList.remove('hidden');
+              }
+            });
+          });
+        }
+
+        showNotification(message, type = 'info') {
+          // Create or update notification
+          let notification = document.getElementById('user-mgmt-notification');
+          if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'user-mgmt-notification';
+            notification.className = 'fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50';
+            document.body.appendChild(notification);
+          }
+
+          const colors = {
+            success: 'bg-green-500 text-white',
+            error: 'bg-red-500 text-white',
+            info: 'bg-blue-500 text-white'
+          };
+
+          notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${colors[type]}`;
+          notification.textContent = message;
+
+          setTimeout(() => {
+            notification.remove();
+          }, 3000);
+        }
+      }
+
+      // Initialize user management when DOM is ready
+      document.addEventListener('DOMContentLoaded', () => {
+        window.userManagement = new UserManagement();
+        window.userManagement.init();
+      });
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"user-management.js":"// User Management Integration for SuperChat-Code Settings\nclass UserManagement {\n  constructor() {\n    this.apiUrl = '/api/user-management';\n    this.currentUser = null;\n    this.users = [];\n    this.stats = {};\n  }\n\n  async init() {\n    try {\n      await this.loadCurrentUser();\n      await this.loadStats();\n      await this.loadUsers();\n      this.injectSettingsPanel();\n    } catch (error) {\n      console.error('User management init failed:', error);\n    }\n  }\n\n  async apiCall(endpoint, options = {}) {\n    const response = await fetch(`${this.apiUrl}${endpoint}`, {\n      ...options,\n      headers: {\n        'Content-Type': 'application/json',\n        ...options.headers\n      },\n      credentials: 'include'\n    });\n\n    if (!response.ok) {\n      throw new Error(`API call failed: ${response.statusText}`);\n    }\n\n    return response.json();\n  }\n\n  async loadCurrentUser() {\n    try {\n      // Get current user from OAuth headers\n      const response = await fetch('/api/user-management/auth/me', {\n        credentials: 'include'\n      });\n      if (response.ok) {\n        this.currentUser = await response.json();\n      }\n    } catch (error) {\n      console.warn('Could not load current user:', error);\n    }\n  }\n\n  async loadUsers() {\n    if (!this.currentUser || this.currentUser.role !== 'super_admin') {\n      return;\n    }\n\n    try {\n      this.users = await this.apiCall('/admin/users');\n    } catch (error) {\n      console.error('Failed to load users:', error);\n    }\n  }\n\n  async loadStats() {\n    if (!this.currentUser || this.currentUser.role !== 'super_admin') {\n      return;\n    }\n\n    try {\n      this.stats = await this.apiCall('/admin/stats');\n    } catch (error) {\n      console.error('Failed to load stats:', error);\n    }\n  }\n\n  injectSettingsPanel() {\n    // Wait for the settings modal to exist\n    const checkForSettings = () =\u003e {\n      const settingsButton = document.querySelector('[data-testid=\"settings-button\"], .settings-button, button[aria-label*=\"settings\" i]');\n      if (settingsButton) {\n        this.enhanceSettingsModal();\n      } else {\n        setTimeout(checkForSettings, 1000);\n      }\n    };\n    checkForSettings();\n  }\n\n  enhanceSettingsModal() {\n    // Find the settings modal/panel\n    const settingsModal = document.querySelector('.settings-modal, .settings-panel, [role=\"dialog\"]');\n\n    if (!settingsModal) {\n      // Create settings enhancement when modal opens\n      this.observeSettingsModal();\n      return;\n    }\n\n    this.addUserManagementTab(settingsModal);\n  }\n\n  observeSettingsModal() {\n    const observer = new MutationObserver((mutations) =\u003e {\n      mutations.forEach((mutation) =\u003e {\n        mutation.addedNodes.forEach((node) =\u003e {\n          if (node.nodeType === 1 \u0026\u0026 (\n            node.classList?.contains('settings-modal') ||\n            node.querySelector?.('.settings-modal') ||\n            node.getAttribute?.('role') === 'dialog'\n          )) {\n            this.addUserManagementTab(node);\n          }\n        });\n      });\n    });\n\n    observer.observe(document.body, {\n      childList: true,\n      subtree: true\n    });\n  }\n\n  addUserManagementTab(settingsContainer) {\n    if (!this.currentUser || this.currentUser.role !== 'super_admin') {\n      return;\n    }\n\n    // Check if already added\n    if (settingsContainer.querySelector('#user-management-tab')) {\n      return;\n    }\n\n    // Find tabs container or create one\n    let tabsContainer = settingsContainer.querySelector('.settings-tabs, .tab-list, nav');\n    let contentContainer = settingsContainer.querySelector('.settings-content, .tab-content, .modal-body');\n\n    if (!tabsContainer) {\n      // Create tabs structure if it doesn't exist\n      const settingsContent = settingsContainer.querySelector('.settings-content') || settingsContainer;\n\n      tabsContainer = document.createElement('div');\n      tabsContainer.className = 'border-b border-gray-200 mb-4';\n      tabsContainer.innerHTML = `\n        \u003cnav class=\"flex space-x-8\"\u003e\n          \u003cbutton class=\"settings-tab active py-2 px-1 border-b-2 border-blue-500 text-blue-600 font-medium text-sm\"\n                  data-tab=\"general\"\u003eGeneral\u003c/button\u003e\n          \u003cbutton class=\"settings-tab py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm\"\n                  data-tab=\"user-management\" id=\"user-management-tab\"\u003eUser Management\u003c/button\u003e\n        \u003c/nav\u003e\n      `;\n\n      contentContainer = document.createElement('div');\n      contentContainer.className = 'settings-content';\n\n      settingsContent.insertBefore(tabsContainer, settingsContent.firstChild);\n      settingsContent.appendChild(contentContainer);\n    } else {\n      // Add user management tab to existing tabs\n      const userMgmtTab = document.createElement('button');\n      userMgmtTab.id = 'user-management-tab';\n      userMgmtTab.className = 'settings-tab py-2 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium text-sm';\n      userMgmtTab.setAttribute('data-tab', 'user-management');\n      userMgmtTab.textContent = 'User Management';\n      tabsContainer.appendChild(userMgmtTab);\n    }\n\n    // Add user management content\n    this.addUserManagementContent(contentContainer);\n\n    // Add tab switching functionality\n    this.setupTabSwitching(settingsContainer);\n  }\n\n  addUserManagementContent(container) {\n    const userMgmtContent = document.createElement('div');\n    userMgmtContent.id = 'user-management-content';\n    userMgmtContent.className = 'tab-content hidden';\n    userMgmtContent.innerHTML = `\n      \u003cdiv class=\"space-y-6\"\u003e\n        \u003c!-- Stats Cards --\u003e\n        \u003cdiv class=\"grid grid-cols-2 lg:grid-cols-4 gap-4\"\u003e\n          \u003cdiv class=\"bg-blue-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-blue-700\"\u003eTotal Users\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-blue-900\" id=\"stat-total\"\u003e${this.stats.total_users || 0}\u003c/p\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-green-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-green-700\"\u003eActive\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-green-900\" id=\"stat-active\"\u003e${this.stats.active_users || 0}\u003c/p\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-orange-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-orange-700\"\u003ePending\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-orange-900\" id=\"stat-pending\"\u003e${this.stats.pending_users || 0}\u003c/p\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-purple-50 rounded-lg p-4\"\u003e\n            \u003ch3 class=\"text-sm font-medium text-purple-700\"\u003eDevelopers\u003c/h3\u003e\n            \u003cp class=\"text-2xl font-bold text-purple-900\" id=\"stat-developers\"\u003e${this.stats.developers || 0}\u003c/p\u003e\n          \u003c/div\u003e\n        \u003c/div\u003e\n\n        \u003c!-- Users Table --\u003e\n        \u003cdiv class=\"bg-white border rounded-lg\"\u003e\n          \u003cdiv class=\"px-4 py-3 border-b border-gray-200 flex justify-between items-center\"\u003e\n            \u003ch3 class=\"text-lg font-medium text-gray-900\"\u003eUsers\u003c/h3\u003e\n            \u003cbutton id=\"refresh-users\" class=\"text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600\"\u003e\n              Refresh\n            \u003c/button\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"overflow-x-auto\"\u003e\n            \u003ctable class=\"w-full\"\u003e\n              \u003cthead class=\"bg-gray-50\"\u003e\n                \u003ctr\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eEmail\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eName\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eRole\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eStatus\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eActions\u003c/th\u003e\n                \u003c/tr\u003e\n              \u003c/thead\u003e\n              \u003ctbody id=\"users-table-body\" class=\"divide-y divide-gray-200\"\u003e\n                \u003c!-- Users will be populated here --\u003e\n              \u003c/tbody\u003e\n            \u003c/table\u003e\n          \u003c/div\u003e\n        \u003c/div\u003e\n      \u003c/div\u003e\n    `;\n\n    container.appendChild(userMgmtContent);\n    this.populateUsersTable();\n    this.setupUserManagementHandlers();\n  }\n\n  populateUsersTable() {\n    const tbody = document.getElementById('users-table-body');\n    if (!tbody) return;\n\n    tbody.innerHTML = this.users.map(user =\u003e `\n      \u003ctr\u003e\n        \u003ctd class=\"px-4 py-2 text-sm text-gray-900\"\u003e${user.email}\u003c/td\u003e\n        \u003ctd class=\"px-4 py-2 text-sm text-gray-900\"\u003e${user.full_name || '-'}\u003c/td\u003e\n        \u003ctd class=\"px-4 py-2\"\u003e\n          \u003cselect class=\"user-role text-sm border rounded px-2 py-1\" data-user-id=\"${user.id}\"\u003e\n            \u003coption value=\"pending\" ${user.role === 'pending' ? 'selected' : ''}\u003ePending\u003c/option\u003e\n            \u003coption value=\"family\" ${user.role === 'family' ? 'selected' : ''}\u003eFamily\u003c/option\u003e\n            \u003coption value=\"developer\" ${user.role === 'developer' ? 'selected' : ''}\u003eDeveloper\u003c/option\u003e\n            \u003coption value=\"super_admin\" ${user.role === 'super_admin' ? 'selected' : ''}\u003eSuper Admin\u003c/option\u003e\n          \u003c/select\u003e\n        \u003c/td\u003e\n        \u003ctd class=\"px-4 py-2\"\u003e\n          \u003cselect class=\"user-status text-sm border rounded px-2 py-1\" data-user-id=\"${user.id}\"\u003e\n            \u003coption value=\"pending\" ${user.status === 'pending' ? 'selected' : ''}\u003ePending\u003c/option\u003e\n            \u003coption value=\"active\" ${user.status === 'active' ? 'selected' : ''}\u003eActive\u003c/option\u003e\n            \u003coption value=\"suspended\" ${user.status === 'suspended' ? 'selected' : ''}\u003eSuspended\u003c/option\u003e\n          \u003c/select\u003e\n        \u003c/td\u003e\n        \u003ctd class=\"px-4 py-2\"\u003e\n          \u003cbutton class=\"delete-user text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600\"\n                  data-user-id=\"${user.id}\"\n                  ${user.id === this.currentUser?.id ? 'disabled' : ''}\u003e\n            Delete\n          \u003c/button\u003e\n        \u003c/td\u003e\n      \u003c/tr\u003e\n    `).join('');\n  }\n\n  setupUserManagementHandlers() {\n    // Refresh button\n    document.getElementById('refresh-users')?.addEventListener('click', async () =\u003e {\n      await this.loadUsers();\n      await this.loadStats();\n      this.populateUsersTable();\n      this.updateStats();\n    });\n\n    // User role/status changes\n    document.addEventListener('change', async (e) =\u003e {\n      if (e.target.classList.contains('user-role') || e.target.classList.contains('user-status')) {\n        const userId = e.target.getAttribute('data-user-id');\n        const user = this.users.find(u =\u003e u.id == userId);\n\n        if (!user) return;\n\n        if (e.target.classList.contains('user-role')) {\n          user.role = e.target.value;\n        } else {\n          user.status = e.target.value;\n        }\n\n        try {\n          await this.apiCall(`/admin/users/${userId}`, {\n            method: 'PUT',\n            body: JSON.stringify({\n              role: user.role,\n              status: user.status,\n              full_name: user.full_name\n            })\n          });\n\n          // Show success feedback\n          this.showNotification('User updated successfully', 'success');\n          await this.loadStats();\n          this.updateStats();\n        } catch (error) {\n          console.error('Failed to update user:', error);\n          this.showNotification('Failed to update user', 'error');\n          // Revert change\n          await this.loadUsers();\n          this.populateUsersTable();\n        }\n      }\n    });\n\n    // Delete user\n    document.addEventListener('click', async (e) =\u003e {\n      if (e.target.classList.contains('delete-user')) {\n        const userId = e.target.getAttribute('data-user-id');\n        const user = this.users.find(u =\u003e u.id == userId);\n\n        if (!user || user.id === this.currentUser?.id) return;\n\n        if (!confirm(`Are you sure you want to delete ${user.email}?`)) return;\n\n        try {\n          await this.apiCall(`/admin/users/${userId}`, {\n            method: 'DELETE'\n          });\n\n          this.showNotification('User deleted successfully', 'success');\n          await this.loadUsers();\n          await this.loadStats();\n          this.populateUsersTable();\n          this.updateStats();\n        } catch (error) {\n          console.error('Failed to delete user:', error);\n          this.showNotification('Failed to delete user', 'error');\n        }\n      }\n    });\n  }\n\n  updateStats() {\n    document.getElementById('stat-total').textContent = this.stats.total_users || 0;\n    document.getElementById('stat-active').textContent = this.stats.active_users || 0;\n    document.getElementById('stat-pending').textContent = this.stats.pending_users || 0;\n    document.getElementById('stat-developers').textContent = this.stats.developers || 0;\n  }\n\n  setupTabSwitching(container) {\n    const tabs = container.querySelectorAll('.settings-tab');\n    const contents = container.querySelectorAll('.tab-content');\n\n    tabs.forEach(tab =\u003e {\n      tab.addEventListener('click', () =\u003e {\n        const targetTab = tab.getAttribute('data-tab');\n\n        // Update tab states\n        tabs.forEach(t =\u003e {\n          t.classList.remove('active', 'border-blue-500', 'text-blue-600');\n          t.classList.add('border-transparent', 'text-gray-500');\n        });\n\n        tab.classList.add('active', 'border-blue-500', 'text-blue-600');\n        tab.classList.remove('border-transparent', 'text-gray-500');\n\n        // Update content visibility\n        contents.forEach(content =\u003e {\n          content.classList.add('hidden');\n        });\n\n        const targetContent = container.querySelector(`#${targetTab}-content`) ||\n                              container.querySelector(`[data-tab-content=\"${targetTab}\"]`);\n        if (targetContent) {\n          targetContent.classList.remove('hidden');\n        }\n      });\n    });\n  }\n\n  showNotification(message, type = 'info') {\n    // Create or update notification\n    let notification = document.getElementById('user-mgmt-notification');\n    if (!notification) {\n      notification = document.createElement('div');\n      notification.id = 'user-mgmt-notification';\n      notification.className = 'fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50';\n      document.body.appendChild(notification);\n    }\n\n    const colors = {\n      success: 'bg-green-500 text-white',\n      error: 'bg-red-500 text-white',\n      info: 'bg-blue-500 text-white'\n    };\n\n    notification.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg z-50 ${colors[type]}`;\n    notification.textContent = message;\n\n    setTimeout(() =\u003e {\n      notification.remove();\n    }, 3000);\n  }\n}\n\n// Initialize user management when DOM is ready\ndocument.addEventListener('DOMContentLoaded', () =\u003e {\n  window.userManagement = new UserManagement();\n  window.userManagement.init();\n});\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"user-management-client-code","namespace":"development"}}
+    creationTimestamp: "2025-09-26T20:27:40Z"
+    name: user-management-client-code
+    namespace: development
+    resourceVersion: "995435"
+    uid: a42a3728-6f04-43b1-b5de-340c4afc1e08
+- apiVersion: v1
+  data:
+    user-management-loader.js: "/**\n * VISIBLE DEBUG VERSION - Creates a yellow panel
+      to show what's happening\n */\n\n(function() {\n    const DEBUG_PREFIX = '%c[UM-VISIBLE-DEBUG]';\n
+      \   const DEBUG_STYLE = 'color: red; font-weight: bold; font-size: 14px;';\n\n
+      \   console.log(DEBUG_PREFIX, DEBUG_STYLE, 'Script executing at:', new Date().toISOString());\n
+      \   console.log(DEBUG_PREFIX, DEBUG_STYLE, 'Page URL:', window.location.href);\n\n
+      \   // Create visible debug panel immediately\n    function createDebugPanel()
+      {\n        // Remove any existing panel\n        const existing = document.getElementById('um-debug-panel');\n
+      \       if (existing) existing.remove();\n\n        const panel = document.createElement('div');\n
+      \       panel.id = 'um-debug-panel';\n        panel.style.cssText = `\n            position:
+      fixed;\n            bottom: 10px;\n            right: 10px;\n            background:
+      yellow;\n            border: 3px solid red;\n            padding: 15px;\n            z-index:
+      2147483647;\n            font-family: monospace;\n            font-size: 12px;\n
+      \           max-width: 400px;\n            max-height: 300px;\n            overflow-y:
+      auto;\n            box-shadow: 0 0 20px rgba(0,0,0,0.5);\n        `;\n        panel.innerHTML
+      = `\n            <h3 style=\"margin: 0 0 10px 0; color: red;\">USER MGT DEBUG
+      PANEL</h3>\n            <div id=\"um-debug-content\" style=\"background: white;
+      padding: 5px; border: 1px solid black;\"></div>\n            <button onclick=\"window.testSettingsClick()\"
+      style=\"margin-top: 10px; padding: 5px; background: red; color: white; border:
+      none; cursor: pointer;\">\n                TEST CLICK SETTINGS\n            </button>\n
+      \       `;\n\n        if (document.body) {\n            document.body.appendChild(panel);\n
+      \       }\n        return panel;\n    }\n\n    // Log to both console and visible
+      panel\n    function debugLog(message, isError = false) {\n        console.log(DEBUG_PREFIX,
+      DEBUG_STYLE, message);\n        const content = document.getElementById('um-debug-content');\n
+      \       if (content) {\n            const time = new Date().toISOString().split('T')[1].split('.')[0];\n
+      \           const color = isError ? 'red' : 'black';\n            content.innerHTML
+      += `<div style=\"color: ${color}; margin: 2px 0;\">${time}: ${message}</div>`;\n
+      \           content.scrollTop = content.scrollHeight;\n        }\n    }\n\n
+      \   // Wait for body to exist\n    function waitForBody(callback) {\n        if
+      (document.body) {\n            callback();\n        } else {\n            setTimeout(()
+      => waitForBody(callback), 50);\n        }\n    }\n\n    // Main function to
+      find and attach to Settings\n    function findAndAttachSettings() {\n        debugLog('Starting
+      Settings search...');\n\n        let attempts = 0;\n        const maxAttempts
+      = 30;\n\n        const searchInterval = setInterval(() => {\n            attempts++;\n
+      \           debugLog(`Attempt ${attempts}/${maxAttempts}`);\n\n            //
+      Count elements\n            const buttons = document.querySelectorAll('button');\n
+      \           const svgs = document.querySelectorAll('svg');\n            debugLog(`Found
+      ${buttons.length} buttons, ${svgs.length} SVGs`);\n\n            // Look for
+      Settings button specifically\n            let settingsButton = null;\n\n            //
+      Method 1: Find lucide-settings SVG\n            const lucideSettings = document.querySelector('svg.lucide-settings,
+      svg.lucide.lucide-settings');\n            if (lucideSettings) {\n                settingsButton
+      = lucideSettings.closest('button');\n                if (settingsButton) {\n
+      \                   debugLog('✓ Found via lucide-settings SVG!');\n                }\n
+      \           }\n\n            // Method 2: Find by text content\n            if
+      (!settingsButton) {\n                const buttonsArray = Array.from(buttons);\n
+      \               settingsButton = buttonsArray.find(btn =>\n                    btn.textContent?.toLowerCase().includes('settings')
+      ||\n                    btn.textContent?.toLowerCase().includes('setting')\n
+      \               );\n                if (settingsButton) {\n                    debugLog('✓
+      Found via text content!');\n                }\n            }\n\n            //
+      Method 3: Find by aria-label\n            if (!settingsButton) {\n                settingsButton
+      = document.querySelector('button[aria-label*=\"setting\" i], button[title*=\"setting\"
+      i]');\n                if (settingsButton) {\n                    debugLog('✓
+      Found via aria-label/title!');\n                }\n            }\n\n            if
+      (settingsButton) {\n                debugLog('SUCCESS! Settings button found!',
+      false);\n                debugLog(`Button: ${settingsButton.tagName}, class:
+      ${settingsButton.className}`);\n\n                // Add visual indicator\n
+      \               settingsButton.style.border = '3px solid red';\n                settingsButton.style.boxShadow
+      = '0 0 10px red';\n\n                // Clone and replace to remove existing
+      handlers\n                const newButton = settingsButton.cloneNode(true);\n\n
+      \               // Add our click handler\n                newButton.addEventListener('click',
+      function(e) {\n                    debugLog('\U0001F3AF SETTINGS CLICKED!',
+      false);\n                    alert('User Management: Settings button clicked
+      successfully!');\n                    console.log('Settings click event:', e);\n\n
+      \                   // Load main script if needed\n                    if (!window.UserManagementMainLoaded)
+      {\n                        debugLog('Loading main user management script...');\n
+      \                       const script = document.createElement('script');\n                        script.src
+      = '/user-management.js';\n                        script.onload = () => {\n
+      \                           debugLog('Main script loaded!');\n                            window.UserManagementMainLoaded
+      = true;\n                        };\n                        script.onerror
+      = () => {\n                            debugLog('Failed to load main script!',
+      true);\n                        };\n                        document.head.appendChild(script);\n
+      \                   }\n                }, true);\n\n                settingsButton.parentNode.replaceChild(newButton,
+      settingsButton);\n                debugLog('Click handler attached!');\n\n                //
+      Store reference\n                window.SettingsButtonFound = newButton;\n\n
+      \               clearInterval(searchInterval);\n                return;\n            }\n\n
+      \           if (attempts >= maxAttempts) {\n                debugLog(`FAILED
+      after ${maxAttempts} attempts!`, true);\n                debugLog('Dumping page
+      info...', true);\n\n                // List all buttons for debugging\n                buttons.forEach((btn,
+      i) => {\n                    if (i < 5) { // Only first 5\n                        console.log(`Button
+      ${i}:`, btn, 'Text:', btn.textContent?.substring(0, 30));\n                    }\n
+      \               });\n\n                clearInterval(searchInterval);\n            }\n
+      \       }, 1000);\n    }\n\n    // Test function exposed globally\n    window.testSettingsClick
+      = function() {\n        debugLog('Manual test triggered');\n        if (window.SettingsButtonFound)
+      {\n            window.SettingsButtonFound.click();\n        } else {\n            const
+      btn = document.querySelector('svg.lucide-settings')?.closest('button');\n            if
+      (btn) {\n                debugLog('Found button manually, clicking...');\n                btn.click();\n
+      \           } else {\n                alert('Settings button not found yet!');\n
+      \           }\n        }\n    };\n\n    // Start everything\n    waitForBody(()
+      => {\n        createDebugPanel();\n        debugLog('Debug panel created');\n
+      \       debugLog('Waiting 2 seconds for React to render...');\n        setTimeout(()
+      => {\n            findAndAttachSettings();\n        }, 2000);\n    });\n\n    //
+      Also expose manual restart\n    window.restartUserManagementDebug = function()
+      {\n        debugLog('Manual restart triggered');\n        findAndAttachSettings();\n
+      \   };\n\n})();"
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: "{\"apiVersion\":\"v1\",\"data\":{\"user-management-loader.js\":\"/**\\n
+        * VISIBLE DEBUG VERSION - Creates a yellow panel to show what's happening\\n
+        */\\n\\n(function() {\\n    const DEBUG_PREFIX = '%c[UM-VISIBLE-DEBUG]';\\n
+        \   const DEBUG_STYLE = 'color: red; font-weight: bold; font-size: 14px;';\\n\\n
+        \   console.log(DEBUG_PREFIX, DEBUG_STYLE, 'Script executing at:', new Date().toISOString());\\n
+        \   console.log(DEBUG_PREFIX, DEBUG_STYLE, 'Page URL:', window.location.href);\\n\\n
+        \   // Create visible debug panel immediately\\n    function createDebugPanel()
+        {\\n        // Remove any existing panel\\n        const existing = document.getElementById('um-debug-panel');\\n
+        \       if (existing) existing.remove();\\n\\n        const panel = document.createElement('div');\\n
+        \       panel.id = 'um-debug-panel';\\n        panel.style.cssText = `\\n
+        \           position: fixed;\\n            bottom: 10px;\\n            right:
+        10px;\\n            background: yellow;\\n            border: 3px solid red;\\n
+        \           padding: 15px;\\n            z-index: 2147483647;\\n            font-family:
+        monospace;\\n            font-size: 12px;\\n            max-width: 400px;\\n
+        \           max-height: 300px;\\n            overflow-y: auto;\\n            box-shadow:
+        0 0 20px rgba(0,0,0,0.5);\\n        `;\\n        panel.innerHTML = `\\n            \\u003ch3
+        style=\\\"margin: 0 0 10px 0; color: red;\\\"\\u003eUSER MGT DEBUG PANEL\\u003c/h3\\u003e\\n
+        \           \\u003cdiv id=\\\"um-debug-content\\\" style=\\\"background: white;
+        padding: 5px; border: 1px solid black;\\\"\\u003e\\u003c/div\\u003e\\n            \\u003cbutton
+        onclick=\\\"window.testSettingsClick()\\\" style=\\\"margin-top: 10px; padding:
+        5px; background: red; color: white; border: none; cursor: pointer;\\\"\\u003e\\n
+        \               TEST CLICK SETTINGS\\n            \\u003c/button\\u003e\\n
+        \       `;\\n\\n        if (document.body) {\\n            document.body.appendChild(panel);\\n
+        \       }\\n        return panel;\\n    }\\n\\n    // Log to both console
+        and visible panel\\n    function debugLog(message, isError = false) {\\n        console.log(DEBUG_PREFIX,
+        DEBUG_STYLE, message);\\n        const content = document.getElementById('um-debug-content');\\n
+        \       if (content) {\\n            const time = new Date().toISOString().split('T')[1].split('.')[0];\\n
+        \           const color = isError ? 'red' : 'black';\\n            content.innerHTML
+        += `\\u003cdiv style=\\\"color: ${color}; margin: 2px 0;\\\"\\u003e${time}:
+        ${message}\\u003c/div\\u003e`;\\n            content.scrollTop = content.scrollHeight;\\n
+        \       }\\n    }\\n\\n    // Wait for body to exist\\n    function waitForBody(callback)
+        {\\n        if (document.body) {\\n            callback();\\n        } else
+        {\\n            setTimeout(() =\\u003e waitForBody(callback), 50);\\n        }\\n
+        \   }\\n\\n    // Main function to find and attach to Settings\\n    function
+        findAndAttachSettings() {\\n        debugLog('Starting Settings search...');\\n\\n
+        \       let attempts = 0;\\n        const maxAttempts = 30;\\n\\n        const
+        searchInterval = setInterval(() =\\u003e {\\n            attempts++;\\n            debugLog(`Attempt
+        ${attempts}/${maxAttempts}`);\\n\\n            // Count elements\\n            const
+        buttons = document.querySelectorAll('button');\\n            const svgs =
+        document.querySelectorAll('svg');\\n            debugLog(`Found ${buttons.length}
+        buttons, ${svgs.length} SVGs`);\\n\\n            // Look for Settings button
+        specifically\\n            let settingsButton = null;\\n\\n            //
+        Method 1: Find lucide-settings SVG\\n            const lucideSettings = document.querySelector('svg.lucide-settings,
+        svg.lucide.lucide-settings');\\n            if (lucideSettings) {\\n                settingsButton
+        = lucideSettings.closest('button');\\n                if (settingsButton)
+        {\\n                    debugLog('✓ Found via lucide-settings SVG!');\\n                }\\n
+        \           }\\n\\n            // Method 2: Find by text content\\n            if
+        (!settingsButton) {\\n                const buttonsArray = Array.from(buttons);\\n
+        \               settingsButton = buttonsArray.find(btn =\\u003e\\n                    btn.textContent?.toLowerCase().includes('settings')
+        ||\\n                    btn.textContent?.toLowerCase().includes('setting')\\n
+        \               );\\n                if (settingsButton) {\\n                    debugLog('✓
+        Found via text content!');\\n                }\\n            }\\n\\n            //
+        Method 3: Find by aria-label\\n            if (!settingsButton) {\\n                settingsButton
+        = document.querySelector('button[aria-label*=\\\"setting\\\" i], button[title*=\\\"setting\\\"
+        i]');\\n                if (settingsButton) {\\n                    debugLog('✓
+        Found via aria-label/title!');\\n                }\\n            }\\n\\n            if
+        (settingsButton) {\\n                debugLog('SUCCESS! Settings button found!',
+        false);\\n                debugLog(`Button: ${settingsButton.tagName}, class:
+        ${settingsButton.className}`);\\n\\n                // Add visual indicator\\n
+        \               settingsButton.style.border = '3px solid red';\\n                settingsButton.style.boxShadow
+        = '0 0 10px red';\\n\\n                // Clone and replace to remove existing
+        handlers\\n                const newButton = settingsButton.cloneNode(true);\\n\\n
+        \               // Add our click handler\\n                newButton.addEventListener('click',
+        function(e) {\\n                    debugLog('\U0001F3AF SETTINGS CLICKED!',
+        false);\\n                    alert('User Management: Settings button clicked
+        successfully!');\\n                    console.log('Settings click event:',
+        e);\\n\\n                    // Load main script if needed\\n                    if
+        (!window.UserManagementMainLoaded) {\\n                        debugLog('Loading
+        main user management script...');\\n                        const script =
+        document.createElement('script');\\n                        script.src = '/user-management.js';\\n
+        \                       script.onload = () =\\u003e {\\n                            debugLog('Main
+        script loaded!');\\n                            window.UserManagementMainLoaded
+        = true;\\n                        };\\n                        script.onerror
+        = () =\\u003e {\\n                            debugLog('Failed to load main
+        script!', true);\\n                        };\\n                        document.head.appendChild(script);\\n
+        \                   }\\n                }, true);\\n\\n                settingsButton.parentNode.replaceChild(newButton,
+        settingsButton);\\n                debugLog('Click handler attached!');\\n\\n
+        \               // Store reference\\n                window.SettingsButtonFound
+        = newButton;\\n\\n                clearInterval(searchInterval);\\n                return;\\n
+        \           }\\n\\n            if (attempts \\u003e= maxAttempts) {\\n                debugLog(`FAILED
+        after ${maxAttempts} attempts!`, true);\\n                debugLog('Dumping
+        page info...', true);\\n\\n                // List all buttons for debugging\\n
+        \               buttons.forEach((btn, i) =\\u003e {\\n                    if
+        (i \\u003c 5) { // Only first 5\\n                        console.log(`Button
+        ${i}:`, btn, 'Text:', btn.textContent?.substring(0, 30));\\n                    }\\n
+        \               });\\n\\n                clearInterval(searchInterval);\\n
+        \           }\\n        }, 1000);\\n    }\\n\\n    // Test function exposed
+        globally\\n    window.testSettingsClick = function() {\\n        debugLog('Manual
+        test triggered');\\n        if (window.SettingsButtonFound) {\\n            window.SettingsButtonFound.click();\\n
+        \       } else {\\n            const btn = document.querySelector('svg.lucide-settings')?.closest('button');\\n
+        \           if (btn) {\\n                debugLog('Found button manually,
+        clicking...');\\n                btn.click();\\n            } else {\\n                alert('Settings
+        button not found yet!');\\n            }\\n        }\\n    };\\n\\n    //
+        Start everything\\n    waitForBody(() =\\u003e {\\n        createDebugPanel();\\n
+        \       debugLog('Debug panel created');\\n        debugLog('Waiting 2 seconds
+        for React to render...');\\n        setTimeout(() =\\u003e {\\n            findAndAttachSettings();\\n
+        \       }, 2000);\\n    });\\n\\n    // Also expose manual restart\\n    window.restartUserManagementDebug
+        = function() {\\n        debugLog('Manual restart triggered');\\n        findAndAttachSettings();\\n
+        \   };\\n\\n})();\"},\"kind\":\"ConfigMap\",\"metadata\":{\"annotations\":{},\"creationTimestamp\":null,\"name\":\"user-management-loader-script\",\"namespace\":\"development\"}}\n"
+    creationTimestamp: "2025-09-26T23:53:28Z"
+    name: user-management-loader-script
+    namespace: development
+    resourceVersion: "1064667"
+    uid: 9657ad91-f5a5-423e-ade0-868fd41d0d6c
+- apiVersion: v1
+  data:
+    user-management-client.js: |
+      // User Management Integration for SuperChat-Code Settings - FIXED VERSION
+      console.log('[UserManagement] Script loaded at:', new Date().toISOString());
+
+      window.UserManagement = {
+        apiUrl: '/api/user-management',
+        currentUser: null,
+        initialized: false,
+
+        async init() {
+          if (this.initialized) {
+            console.log('[UserManagement] Already initialized');
+            return;
+          }
+
+          console.log('[UserManagement] Initializing...');
+          this.initialized = true;
+
+          // Multiple strategies to find Settings button
+          const findSettingsButton = () => {
+            let settingsButton = null;
+
+            // Strategy 1: Find by SVG icon
+            const settingsIcon = document.querySelector('svg.lucide-settings, svg[class*="settings"]');
+            if (settingsIcon) {
+              settingsButton = settingsIcon.closest('button');
+              console.log('[UserManagement] Found by SVG icon:', settingsButton);
+            }
+
+            // Strategy 2: Find by aria-label
+            if (!settingsButton) {
+              settingsButton = document.querySelector('button[aria-label*="Settings" i], button[aria-label*="settings" i]');
+              console.log('[UserManagement] Found by aria-label:', settingsButton);
+            }
+
+            // Strategy 3: Find by class
+            if (!settingsButton) {
+              settingsButton = document.querySelector('.settings-button, button.settings, [class*="settings-btn"]');
+              console.log('[UserManagement] Found by class:', settingsButton);
+            }
+
+            // Strategy 4: Find by text content
+            if (!settingsButton) {
+              const buttons = document.querySelectorAll('button');
+              settingsButton = Array.from(buttons).find(btn => {
+                const text = btn.textContent || '';
+                return text.toLowerCase().includes('settings') || text.toLowerCase().includes('preferences');
+              });
+              console.log('[UserManagement] Found by text:', settingsButton);
+            }
+
+            // Strategy 5: Look in sidebar or menu
+            if (!settingsButton) {
+              const containers = document.querySelectorAll('.sidebar, #sidebar, [class*="sidebar"], nav, .menu');
+              for (const container of containers) {
+                settingsButton = container.querySelector('button');
+                if (settingsButton && (settingsButton.innerHTML.includes('settings') || settingsButton.innerHTML.includes('Settings'))) {
+                  console.log('[UserManagement] Found in sidebar/menu:', settingsButton);
+                  break;
+                }
+              }
+            }
+
+            return settingsButton;
+          };
+
+          // Try to find and enhance Settings button
+          const attemptInit = () => {
+            const settingsButton = findSettingsButton();
+
+            if (settingsButton) {
+              console.log('[UserManagement] Settings button found, enhancing...');
+              this.enhanceSettingsButton(settingsButton);
+            } else {
+              console.log('[UserManagement] Settings button not found, will retry in 2 seconds...');
+              setTimeout(attemptInit, 2000);
+            }
+          };
+
+          attemptInit();
+        },
+
+        enhanceSettingsButton(button) {
+          console.log('[UserManagement] Enhancing settings button...');
+
+          // Remove any existing listeners to avoid duplicates
+          const newButton = button.cloneNode(true);
+          button.parentNode.replaceChild(newButton, button);
+
+          // Add our click handler
+          newButton.addEventListener('click', (e) => {
+            console.log('[UserManagement] Settings button clicked!');
+
+            // Wait a bit for modal to appear
+            setTimeout(() => {
+              this.injectUserManagement();
+            }, 300);
+          }, { capture: true });
+
+          console.log('[UserManagement] Settings button enhanced successfully');
+        },
+
+        async injectUserManagement() {
+          console.log('[UserManagement] Checking for modal and user permissions...');
+
+          // First check if user has access
+          const hasAccess = await this.checkUserAccess();
+          if (!hasAccess) {
+            console.log('[UserManagement] User does not have admin access');
+            return;
+          }
+
+          // Find the modal
+          const modal = this.findModal();
+          if (!modal) {
+            console.log('[UserManagement] Modal not found, retrying...');
+            setTimeout(() => this.injectUserManagement(), 500);
+            return;
+          }
+
+          console.log('[UserManagement] Modal found, injecting UI...');
+          this.addUserManagementToModal(modal);
+        },
+
+        findModal() {
+          // Try multiple selectors to find the settings modal
+          const selectors = [
+            '[role="dialog"]',
+            '.modal',
+            '.settings-modal',
+            '.fixed.inset-0 > div',
+            '[class*="modal"]',
+            '.overlay > div'
+          ];
+
+          for (const selector of selectors) {
+            const modal = document.querySelector(selector);
+            if (modal && modal.offsetParent !== null) { // Check if visible
+              console.log('[UserManagement] Modal found with selector:', selector);
+              return modal;
+            }
+          }
+
+          return null;
+        },
+
+        async checkUserAccess() {
+          try {
+            const response = await fetch('/api/user-management/admin/stats', {
+              credentials: 'include',
+              headers: {
+                'Accept': 'application/json'
+              }
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              console.log('[UserManagement] User has admin access, stats:', data);
+              return true;
+            }
+
+            console.log('[UserManagement] Access check failed with status:', response.status);
+            return false;
+          } catch (error) {
+            console.error('[UserManagement] Error checking access:', error);
+            return false;
+          }
+        },
+
+        addUserManagementToModal(modal) {
+          // Check if already added
+          if (modal.querySelector('#user-management-tab')) {
+            console.log('[UserManagement] Tab already exists');
+            return;
+          }
+
+          console.log('[UserManagement] Adding User Management tab...');
+
+          // Find or create tab container
+          let tabContainer = modal.querySelector('.tabs, nav, [role="tablist"], .border-b');
+
+          if (!tabContainer) {
+            // Look for any container with multiple buttons
+            const buttonContainers = modal.querySelectorAll('div');
+            for (const container of buttonContainers) {
+              const buttons = container.querySelectorAll('button');
+              if (buttons.length > 1) {
+                tabContainer = container;
+                break;
+              }
+            }
+          }
+
+          if (!tabContainer) {
+            console.log('[UserManagement] Creating new tab container...');
+            tabContainer = document.createElement('div');
+            tabContainer.className = 'flex border-b border-gray-200 mb-4';
+            const modalContent = modal.querySelector('[class*="p-"]') || modal.firstElementChild;
+            if (modalContent) {
+              modalContent.insertBefore(tabContainer, modalContent.firstChild);
+            }
+          }
+
+          // Create and add the tab button
+          const userMgmtTab = document.createElement('button');
+          userMgmtTab.id = 'user-management-tab';
+          userMgmtTab.textContent = 'User Management';
+          userMgmtTab.className = 'px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 focus:outline-none';
+          userMgmtTab.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.showUserManagementPanel(modal);
+          };
+
+          tabContainer.appendChild(userMgmtTab);
+          console.log('[UserManagement] Tab added successfully');
+
+          // Create the panel
+          this.createUserManagementPanel(modal);
+        },
+
+        createUserManagementPanel(modal) {
+          if (modal.querySelector('#user-management-panel')) {
+            console.log('[UserManagement] Panel already exists');
+            return;
+          }
+
+          console.log('[UserManagement] Creating panel...');
+
+          const panel = document.createElement('div');
+          panel.id = 'user-management-panel';
+          panel.style.display = 'none';
+          panel.innerHTML = `
+            <div class="p-4">
+              <h3 class="text-lg font-semibold mb-4">User Management System</h3>
+
+              <!-- Stats Grid -->
+              <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div class="text-sm text-blue-700">Total Users</div>
+                  <div class="text-2xl font-bold text-blue-900" id="stat-total">-</div>
+                </div>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div class="text-sm text-green-700">Active Users</div>
+                  <div class="text-2xl font-bold text-green-900" id="stat-active">-</div>
+                </div>
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <div class="text-sm text-orange-700">Pending Users</div>
+                  <div class="text-2xl font-bold text-orange-900" id="stat-pending">-</div>
+                </div>
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <div class="text-sm text-purple-700">Super Admins</div>
+                  <div class="text-2xl font-bold text-purple-900" id="stat-admins">-</div>
+                </div>
+              </div>
+
+              <!-- Users Table -->
+              <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                  <h4 class="font-medium text-gray-900">Users</h4>
+                  <button onclick="UserManagement.loadUserData()" class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors">
+                    Refresh
+                  </button>
+                </div>
+                <div id="users-table-container" class="max-h-96 overflow-y-auto">
+                  <table class="w-full">
+                    <thead class="bg-gray-50 sticky top-0">
+                      <tr>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="users-table-body" class="bg-white divide-y divide-gray-200">
+                      <tr>
+                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                          Loading users...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // Find where to append the panel
+          const modalContent = modal.querySelector('[class*="p-"]') || modal.firstElementChild;
+          if (modalContent) {
+            modalContent.appendChild(panel);
+            console.log('[UserManagement] Panel created successfully');
+          } else {
+            console.error('[UserManagement] Could not find modal content container');
+          }
+        },
+
+        showUserManagementPanel(modal) {
+          console.log('[UserManagement] Showing User Management panel...');
+
+          // Hide all other panels
+          const allPanels = modal.querySelectorAll('div[id*="panel"], div[class*="tab-content"]');
+          allPanels.forEach(panel => {
+            if (panel.id !== 'user-management-panel') {
+              panel.style.display = 'none';
+            }
+          });
+
+          // Also hide main settings content if it exists
+          const settingsContent = modal.querySelector('.settings-content, [class*="settings-content"]');
+          if (settingsContent) {
+            settingsContent.style.display = 'none';
+          }
+
+          // Show our panel
+          const panel = document.getElementById('user-management-panel');
+          if (panel) {
+            panel.style.display = 'block';
+            this.loadUserData();
+          }
+
+          // Update tab styles
+          const tabs = modal.querySelectorAll('button[id*="tab"]');
+          tabs.forEach(tab => {
+            if (tab.id === 'user-management-tab') {
+              tab.className = 'px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 focus:outline-none';
+            } else {
+              tab.className = 'px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 focus:outline-none';
+            }
+          });
+        },
+
+        async loadUserData() {
+          console.log('[UserManagement] Loading user data...');
+
+          try {
+            // Load stats and users in parallel
+            const [statsResponse, usersResponse] = await Promise.all([
+              fetch('/api/user-management/admin/stats', { credentials: 'include' }),
+              fetch('/api/user-management/admin/users', { credentials: 'include' })
+            ]);
+
+            if (!statsResponse.ok || !usersResponse.ok) {
+              throw new Error('Failed to load data');
+            }
+
+            const stats = await statsResponse.json();
+            const users = await usersResponse.json();
+
+            console.log('[UserManagement] Loaded stats:', stats);
+            console.log('[UserManagement] Loaded users:', users);
+
+            // Update stats
+            document.getElementById('stat-total').textContent = stats.total_users || 0;
+            document.getElementById('stat-active').textContent = stats.active_users || 0;
+            document.getElementById('stat-pending').textContent = stats.pending_users || 0;
+            document.getElementById('stat-admins').textContent = stats.super_admins || 0;
+
+            // Update users table
+            this.renderUsersTable(users);
+
+          } catch (error) {
+            console.error('[UserManagement] Error loading data:', error);
+
+            // Show error in table
+            const tbody = document.getElementById('users-table-body');
+            if (tbody) {
+              tbody.innerHTML = `
+                <tr>
+                  <td colspan="5" class="px-4 py-8 text-center text-red-500">
+                    Error loading users: ${error.message}
+                  </td>
+                </tr>
+              `;
+            }
+          }
+        },
+
+        renderUsersTable(users) {
+          const tbody = document.getElementById('users-table-body');
+          if (!tbody) return;
+
+          if (!users || users.length === 0) {
+            tbody.innerHTML = `
+              <tr>
+                <td colspan="5" class="px-4 py-8 text-center text-gray-500">
+                  No users found
+                </td>
+              </tr>
+            `;
+            return;
+          }
+
+          tbody.innerHTML = users.map(user => `
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 text-sm text-gray-900">${user.email || ''}</td>
+              <td class="px-4 py-3 text-sm text-gray-900">${user.full_name || '-'}</td>
+              <td class="px-4 py-3 text-sm">
+                <select
+                  data-user-id="${user.id}"
+                  data-field="role"
+                  onchange="UserManagement.updateUserField(${user.id}, 'role', this.value)"
+                  class="text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="pending" ${user.role === 'pending' ? 'selected' : ''}>Pending</option>
+                  <option value="family" ${user.role === 'family' ? 'selected' : ''}>Family</option>
+                  <option value="developer" ${user.role === 'developer' ? 'selected' : ''}>Developer</option>
+                  <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>Super Admin</option>
+                </select>
+              </td>
+              <td class="px-4 py-3 text-sm">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                  user.status === 'active' ? 'bg-green-100 text-green-800' :
+                  user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }">
+                  ${user.status || 'unknown'}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-sm">
+                <button
+                  onclick="UserManagement.toggleUserStatus(${user.id}, '${user.status}')"
+                  class="text-xs px-3 py-1 rounded font-medium transition-colors ${
+                    user.status === 'active'
+                      ? 'bg-red-500 text-white hover:bg-red-600'
+                      : 'bg-green-500 text-white hover:bg-green-600'
+                  }">
+                  ${user.status === 'active' ? 'Suspend' : 'Activate'}
+                </button>
+              </td>
+            </tr>
+          `).join('');
+
+          console.log('[UserManagement] Users table rendered');
+        },
+
+        async updateUserField(userId, field, value) {
+          console.log(`[UserManagement] Updating user ${userId} ${field} to ${value}`);
+
+          try {
+            const response = await fetch(`/api/user-management/admin/users/${userId}`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              credentials: 'include',
+              body: JSON.stringify({ [field]: value })
+            });
+
+            if (response.ok) {
+              console.log('[UserManagement] User updated successfully');
+              this.loadUserData(); // Reload data
+            } else {
+              alert('Failed to update user');
+            }
+          } catch (error) {
+            console.error('[UserManagement] Error updating user:', error);
+            alert('Error updating user');
+          }
+        },
+
+        async toggleUserStatus(userId, currentStatus) {
+          const newStatus = currentStatus === 'active' ? 'suspended' : 'active';
+
+          if (!confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'suspend'} this user?`)) {
+            return;
+          }
+
+          await this.updateUserField(userId, 'status', newStatus);
+        }
+      };
+
+      // Initialize when DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+          console.log('[UserManagement] DOM loaded, initializing...');
+          window.UserManagement.init();
+        });
+      } else {
+        console.log('[UserManagement] DOM already loaded, initializing...');
+        window.UserManagement.init();
+      }
+
+      // Also try to initialize after a delay in case the app loads dynamically
+      setTimeout(() => {
+        console.log('[UserManagement] Delayed initialization attempt...');
+        window.UserManagement.init();
+      }, 3000);
+  kind: ConfigMap
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"v1","data":{"user-management-client.js":"// User Management Integration for SuperChat-Code Settings - FIXED VERSION\nconsole.log('[UserManagement] Script loaded at:', new Date().toISOString());\n\nwindow.UserManagement = {\n  apiUrl: '/api/user-management',\n  currentUser: null,\n  initialized: false,\n\n  async init() {\n    if (this.initialized) {\n      console.log('[UserManagement] Already initialized');\n      return;\n    }\n\n    console.log('[UserManagement] Initializing...');\n    this.initialized = true;\n\n    // Multiple strategies to find Settings button\n    const findSettingsButton = () =\u003e {\n      let settingsButton = null;\n\n      // Strategy 1: Find by SVG icon\n      const settingsIcon = document.querySelector('svg.lucide-settings, svg[class*=\"settings\"]');\n      if (settingsIcon) {\n        settingsButton = settingsIcon.closest('button');\n        console.log('[UserManagement] Found by SVG icon:', settingsButton);\n      }\n\n      // Strategy 2: Find by aria-label\n      if (!settingsButton) {\n        settingsButton = document.querySelector('button[aria-label*=\"Settings\" i], button[aria-label*=\"settings\" i]');\n        console.log('[UserManagement] Found by aria-label:', settingsButton);\n      }\n\n      // Strategy 3: Find by class\n      if (!settingsButton) {\n        settingsButton = document.querySelector('.settings-button, button.settings, [class*=\"settings-btn\"]');\n        console.log('[UserManagement] Found by class:', settingsButton);\n      }\n\n      // Strategy 4: Find by text content\n      if (!settingsButton) {\n        const buttons = document.querySelectorAll('button');\n        settingsButton = Array.from(buttons).find(btn =\u003e {\n          const text = btn.textContent || '';\n          return text.toLowerCase().includes('settings') || text.toLowerCase().includes('preferences');\n        });\n        console.log('[UserManagement] Found by text:', settingsButton);\n      }\n\n      // Strategy 5: Look in sidebar or menu\n      if (!settingsButton) {\n        const containers = document.querySelectorAll('.sidebar, #sidebar, [class*=\"sidebar\"], nav, .menu');\n        for (const container of containers) {\n          settingsButton = container.querySelector('button');\n          if (settingsButton \u0026\u0026 (settingsButton.innerHTML.includes('settings') || settingsButton.innerHTML.includes('Settings'))) {\n            console.log('[UserManagement] Found in sidebar/menu:', settingsButton);\n            break;\n          }\n        }\n      }\n\n      return settingsButton;\n    };\n\n    // Try to find and enhance Settings button\n    const attemptInit = () =\u003e {\n      const settingsButton = findSettingsButton();\n\n      if (settingsButton) {\n        console.log('[UserManagement] Settings button found, enhancing...');\n        this.enhanceSettingsButton(settingsButton);\n      } else {\n        console.log('[UserManagement] Settings button not found, will retry in 2 seconds...');\n        setTimeout(attemptInit, 2000);\n      }\n    };\n\n    attemptInit();\n  },\n\n  enhanceSettingsButton(button) {\n    console.log('[UserManagement] Enhancing settings button...');\n\n    // Remove any existing listeners to avoid duplicates\n    const newButton = button.cloneNode(true);\n    button.parentNode.replaceChild(newButton, button);\n\n    // Add our click handler\n    newButton.addEventListener('click', (e) =\u003e {\n      console.log('[UserManagement] Settings button clicked!');\n\n      // Wait a bit for modal to appear\n      setTimeout(() =\u003e {\n        this.injectUserManagement();\n      }, 300);\n    }, { capture: true });\n\n    console.log('[UserManagement] Settings button enhanced successfully');\n  },\n\n  async injectUserManagement() {\n    console.log('[UserManagement] Checking for modal and user permissions...');\n\n    // First check if user has access\n    const hasAccess = await this.checkUserAccess();\n    if (!hasAccess) {\n      console.log('[UserManagement] User does not have admin access');\n      return;\n    }\n\n    // Find the modal\n    const modal = this.findModal();\n    if (!modal) {\n      console.log('[UserManagement] Modal not found, retrying...');\n      setTimeout(() =\u003e this.injectUserManagement(), 500);\n      return;\n    }\n\n    console.log('[UserManagement] Modal found, injecting UI...');\n    this.addUserManagementToModal(modal);\n  },\n\n  findModal() {\n    // Try multiple selectors to find the settings modal\n    const selectors = [\n      '[role=\"dialog\"]',\n      '.modal',\n      '.settings-modal',\n      '.fixed.inset-0 \u003e div',\n      '[class*=\"modal\"]',\n      '.overlay \u003e div'\n    ];\n\n    for (const selector of selectors) {\n      const modal = document.querySelector(selector);\n      if (modal \u0026\u0026 modal.offsetParent !== null) { // Check if visible\n        console.log('[UserManagement] Modal found with selector:', selector);\n        return modal;\n      }\n    }\n\n    return null;\n  },\n\n  async checkUserAccess() {\n    try {\n      const response = await fetch('/api/user-management/admin/stats', {\n        credentials: 'include',\n        headers: {\n          'Accept': 'application/json'\n        }\n      });\n\n      if (response.ok) {\n        const data = await response.json();\n        console.log('[UserManagement] User has admin access, stats:', data);\n        return true;\n      }\n\n      console.log('[UserManagement] Access check failed with status:', response.status);\n      return false;\n    } catch (error) {\n      console.error('[UserManagement] Error checking access:', error);\n      return false;\n    }\n  },\n\n  addUserManagementToModal(modal) {\n    // Check if already added\n    if (modal.querySelector('#user-management-tab')) {\n      console.log('[UserManagement] Tab already exists');\n      return;\n    }\n\n    console.log('[UserManagement] Adding User Management tab...');\n\n    // Find or create tab container\n    let tabContainer = modal.querySelector('.tabs, nav, [role=\"tablist\"], .border-b');\n\n    if (!tabContainer) {\n      // Look for any container with multiple buttons\n      const buttonContainers = modal.querySelectorAll('div');\n      for (const container of buttonContainers) {\n        const buttons = container.querySelectorAll('button');\n        if (buttons.length \u003e 1) {\n          tabContainer = container;\n          break;\n        }\n      }\n    }\n\n    if (!tabContainer) {\n      console.log('[UserManagement] Creating new tab container...');\n      tabContainer = document.createElement('div');\n      tabContainer.className = 'flex border-b border-gray-200 mb-4';\n      const modalContent = modal.querySelector('[class*=\"p-\"]') || modal.firstElementChild;\n      if (modalContent) {\n        modalContent.insertBefore(tabContainer, modalContent.firstChild);\n      }\n    }\n\n    // Create and add the tab button\n    const userMgmtTab = document.createElement('button');\n    userMgmtTab.id = 'user-management-tab';\n    userMgmtTab.textContent = 'User Management';\n    userMgmtTab.className = 'px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 focus:outline-none';\n    userMgmtTab.onclick = (e) =\u003e {\n      e.preventDefault();\n      e.stopPropagation();\n      this.showUserManagementPanel(modal);\n    };\n\n    tabContainer.appendChild(userMgmtTab);\n    console.log('[UserManagement] Tab added successfully');\n\n    // Create the panel\n    this.createUserManagementPanel(modal);\n  },\n\n  createUserManagementPanel(modal) {\n    if (modal.querySelector('#user-management-panel')) {\n      console.log('[UserManagement] Panel already exists');\n      return;\n    }\n\n    console.log('[UserManagement] Creating panel...');\n\n    const panel = document.createElement('div');\n    panel.id = 'user-management-panel';\n    panel.style.display = 'none';\n    panel.innerHTML = `\n      \u003cdiv class=\"p-4\"\u003e\n        \u003ch3 class=\"text-lg font-semibold mb-4\"\u003eUser Management System\u003c/h3\u003e\n\n        \u003c!-- Stats Grid --\u003e\n        \u003cdiv class=\"grid grid-cols-2 gap-4 mb-6\"\u003e\n          \u003cdiv class=\"bg-blue-50 border border-blue-200 rounded-lg p-3\"\u003e\n            \u003cdiv class=\"text-sm text-blue-700\"\u003eTotal Users\u003c/div\u003e\n            \u003cdiv class=\"text-2xl font-bold text-blue-900\" id=\"stat-total\"\u003e-\u003c/div\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-green-50 border border-green-200 rounded-lg p-3\"\u003e\n            \u003cdiv class=\"text-sm text-green-700\"\u003eActive Users\u003c/div\u003e\n            \u003cdiv class=\"text-2xl font-bold text-green-900\" id=\"stat-active\"\u003e-\u003c/div\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-orange-50 border border-orange-200 rounded-lg p-3\"\u003e\n            \u003cdiv class=\"text-sm text-orange-700\"\u003ePending Users\u003c/div\u003e\n            \u003cdiv class=\"text-2xl font-bold text-orange-900\" id=\"stat-pending\"\u003e-\u003c/div\u003e\n          \u003c/div\u003e\n          \u003cdiv class=\"bg-purple-50 border border-purple-200 rounded-lg p-3\"\u003e\n            \u003cdiv class=\"text-sm text-purple-700\"\u003eSuper Admins\u003c/div\u003e\n            \u003cdiv class=\"text-2xl font-bold text-purple-900\" id=\"stat-admins\"\u003e-\u003c/div\u003e\n          \u003c/div\u003e\n        \u003c/div\u003e\n\n        \u003c!-- Users Table --\u003e\n        \u003cdiv class=\"border border-gray-200 rounded-lg overflow-hidden\"\u003e\n          \u003cdiv class=\"bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center\"\u003e\n            \u003ch4 class=\"font-medium text-gray-900\"\u003eUsers\u003c/h4\u003e\n            \u003cbutton onclick=\"UserManagement.loadUserData()\" class=\"text-sm bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition-colors\"\u003e\n              Refresh\n            \u003c/button\u003e\n          \u003c/div\u003e\n          \u003cdiv id=\"users-table-container\" class=\"max-h-96 overflow-y-auto\"\u003e\n            \u003ctable class=\"w-full\"\u003e\n              \u003cthead class=\"bg-gray-50 sticky top-0\"\u003e\n                \u003ctr\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eEmail\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eName\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eRole\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eStatus\u003c/th\u003e\n                  \u003cth class=\"px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase\"\u003eActions\u003c/th\u003e\n                \u003c/tr\u003e\n              \u003c/thead\u003e\n              \u003ctbody id=\"users-table-body\" class=\"bg-white divide-y divide-gray-200\"\u003e\n                \u003ctr\u003e\n                  \u003ctd colspan=\"5\" class=\"px-4 py-8 text-center text-gray-500\"\u003e\n                    Loading users...\n                  \u003c/td\u003e\n                \u003c/tr\u003e\n              \u003c/tbody\u003e\n            \u003c/table\u003e\n          \u003c/div\u003e\n        \u003c/div\u003e\n      \u003c/div\u003e\n    `;\n\n    // Find where to append the panel\n    const modalContent = modal.querySelector('[class*=\"p-\"]') || modal.firstElementChild;\n    if (modalContent) {\n      modalContent.appendChild(panel);\n      console.log('[UserManagement] Panel created successfully');\n    } else {\n      console.error('[UserManagement] Could not find modal content container');\n    }\n  },\n\n  showUserManagementPanel(modal) {\n    console.log('[UserManagement] Showing User Management panel...');\n\n    // Hide all other panels\n    const allPanels = modal.querySelectorAll('div[id*=\"panel\"], div[class*=\"tab-content\"]');\n    allPanels.forEach(panel =\u003e {\n      if (panel.id !== 'user-management-panel') {\n        panel.style.display = 'none';\n      }\n    });\n\n    // Also hide main settings content if it exists\n    const settingsContent = modal.querySelector('.settings-content, [class*=\"settings-content\"]');\n    if (settingsContent) {\n      settingsContent.style.display = 'none';\n    }\n\n    // Show our panel\n    const panel = document.getElementById('user-management-panel');\n    if (panel) {\n      panel.style.display = 'block';\n      this.loadUserData();\n    }\n\n    // Update tab styles\n    const tabs = modal.querySelectorAll('button[id*=\"tab\"]');\n    tabs.forEach(tab =\u003e {\n      if (tab.id === 'user-management-tab') {\n        tab.className = 'px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-600 focus:outline-none';\n      } else {\n        tab.className = 'px-4 py-2 text-sm font-medium border-b-2 border-transparent hover:border-gray-300 focus:outline-none';\n      }\n    });\n  },\n\n  async loadUserData() {\n    console.log('[UserManagement] Loading user data...');\n\n    try {\n      // Load stats and users in parallel\n      const [statsResponse, usersResponse] = await Promise.all([\n        fetch('/api/user-management/admin/stats', { credentials: 'include' }),\n        fetch('/api/user-management/admin/users', { credentials: 'include' })\n      ]);\n\n      if (!statsResponse.ok || !usersResponse.ok) {\n        throw new Error('Failed to load data');\n      }\n\n      const stats = await statsResponse.json();\n      const users = await usersResponse.json();\n\n      console.log('[UserManagement] Loaded stats:', stats);\n      console.log('[UserManagement] Loaded users:', users);\n\n      // Update stats\n      document.getElementById('stat-total').textContent = stats.total_users || 0;\n      document.getElementById('stat-active').textContent = stats.active_users || 0;\n      document.getElementById('stat-pending').textContent = stats.pending_users || 0;\n      document.getElementById('stat-admins').textContent = stats.super_admins || 0;\n\n      // Update users table\n      this.renderUsersTable(users);\n\n    } catch (error) {\n      console.error('[UserManagement] Error loading data:', error);\n\n      // Show error in table\n      const tbody = document.getElementById('users-table-body');\n      if (tbody) {\n        tbody.innerHTML = `\n          \u003ctr\u003e\n            \u003ctd colspan=\"5\" class=\"px-4 py-8 text-center text-red-500\"\u003e\n              Error loading users: ${error.message}\n            \u003c/td\u003e\n          \u003c/tr\u003e\n        `;\n      }\n    }\n  },\n\n  renderUsersTable(users) {\n    const tbody = document.getElementById('users-table-body');\n    if (!tbody) return;\n\n    if (!users || users.length === 0) {\n      tbody.innerHTML = `\n        \u003ctr\u003e\n          \u003ctd colspan=\"5\" class=\"px-4 py-8 text-center text-gray-500\"\u003e\n            No users found\n          \u003c/td\u003e\n        \u003c/tr\u003e\n      `;\n      return;\n    }\n\n    tbody.innerHTML = users.map(user =\u003e `\n      \u003ctr class=\"hover:bg-gray-50\"\u003e\n        \u003ctd class=\"px-4 py-3 text-sm text-gray-900\"\u003e${user.email || ''}\u003c/td\u003e\n        \u003ctd class=\"px-4 py-3 text-sm text-gray-900\"\u003e${user.full_name || '-'}\u003c/td\u003e\n        \u003ctd class=\"px-4 py-3 text-sm\"\u003e\n          \u003cselect\n            data-user-id=\"${user.id}\"\n            data-field=\"role\"\n            onchange=\"UserManagement.updateUserField(${user.id}, 'role', this.value)\"\n            class=\"text-xs px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500\"\u003e\n            \u003coption value=\"pending\" ${user.role === 'pending' ? 'selected' : ''}\u003ePending\u003c/option\u003e\n            \u003coption value=\"family\" ${user.role === 'family' ? 'selected' : ''}\u003eFamily\u003c/option\u003e\n            \u003coption value=\"developer\" ${user.role === 'developer' ? 'selected' : ''}\u003eDeveloper\u003c/option\u003e\n            \u003coption value=\"super_admin\" ${user.role === 'super_admin' ? 'selected' : ''}\u003eSuper Admin\u003c/option\u003e\n          \u003c/select\u003e\n        \u003c/td\u003e\n        \u003ctd class=\"px-4 py-3 text-sm\"\u003e\n          \u003cspan class=\"inline-flex px-2 py-1 text-xs font-semibold rounded-full ${\n            user.status === 'active' ? 'bg-green-100 text-green-800' :\n            user.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :\n            'bg-red-100 text-red-800'\n          }\"\u003e\n            ${user.status || 'unknown'}\n          \u003c/span\u003e\n        \u003c/td\u003e\n        \u003ctd class=\"px-4 py-3 text-sm\"\u003e\n          \u003cbutton\n            onclick=\"UserManagement.toggleUserStatus(${user.id}, '${user.status}')\"\n            class=\"text-xs px-3 py-1 rounded font-medium transition-colors ${\n              user.status === 'active'\n                ? 'bg-red-500 text-white hover:bg-red-600'\n                : 'bg-green-500 text-white hover:bg-green-600'\n            }\"\u003e\n            ${user.status === 'active' ? 'Suspend' : 'Activate'}\n          \u003c/button\u003e\n        \u003c/td\u003e\n      \u003c/tr\u003e\n    `).join('');\n\n    console.log('[UserManagement] Users table rendered');\n  },\n\n  async updateUserField(userId, field, value) {\n    console.log(`[UserManagement] Updating user ${userId} ${field} to ${value}`);\n\n    try {\n      const response = await fetch(`/api/user-management/admin/users/${userId}`, {\n        method: 'PUT',\n        headers: {\n          'Content-Type': 'application/json'\n        },\n        credentials: 'include',\n        body: JSON.stringify({ [field]: value })\n      });\n\n      if (response.ok) {\n        console.log('[UserManagement] User updated successfully');\n        this.loadUserData(); // Reload data\n      } else {\n        alert('Failed to update user');\n      }\n    } catch (error) {\n      console.error('[UserManagement] Error updating user:', error);\n      alert('Error updating user');\n    }\n  },\n\n  async toggleUserStatus(userId, currentStatus) {\n    const newStatus = currentStatus === 'active' ? 'suspended' : 'active';\n\n    if (!confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'suspend'} this user?`)) {\n      return;\n    }\n\n    await this.updateUserField(userId, 'status', newStatus);\n  }\n};\n\n// Initialize when DOM is ready\nif (document.readyState === 'loading') {\n  document.addEventListener('DOMContentLoaded', () =\u003e {\n    console.log('[UserManagement] DOM loaded, initializing...');\n    window.UserManagement.init();\n  });\n} else {\n  console.log('[UserManagement] DOM already loaded, initializing...');\n  window.UserManagement.init();\n}\n\n// Also try to initialize after a delay in case the app loads dynamically\nsetTimeout(() =\u003e {\n  console.log('[UserManagement] Delayed initialization attempt...');\n  window.UserManagement.init();\n}, 3000);\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"user-management-script","namespace":"development"}}
+    creationTimestamp: "2025-09-26T21:33:53Z"
+    name: user-management-script
+    namespace: development
+    resourceVersion: "1033855"
+    uid: d198522a-54dc-401a-9509-0e41111f194a
+kind: List
+metadata:
+  resourceVersion: ""

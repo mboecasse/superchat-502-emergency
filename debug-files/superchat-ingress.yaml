@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-2:329599649426:certificate/240df2ff-f94d-4371-908b-47bba11168a0
+    alb.ingress.kubernetes.io/healthcheck-path: /ping
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=86400,load_balancing.algorithm.type=least_outstanding_requests
+    alb.ingress.kubernetes.io/target-type: ip
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"alb.ingress.kubernetes.io/certificate-arn":"arn:aws:acm:eu-west-2:329599649426:certificate/240df2ff-f94d-4371-908b-47bba11168a0","alb.ingress.kubernetes.io/healthcheck-path":"/ping","alb.ingress.kubernetes.io/listen-ports":"[{\"HTTP\": 80}, {\"HTTPS\": 443}]","alb.ingress.kubernetes.io/scheme":"internet-facing","alb.ingress.kubernetes.io/ssl-redirect":"443","alb.ingress.kubernetes.io/target-group-attributes":"stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=86400,load_balancing.algorithm.type=least_outstanding_requests","alb.ingress.kubernetes.io/target-type":"ip"},"name":"superchat-code","namespace":"development"},"spec":{"ingressClassName":"alb","rules":[{"host":"code.mbo9.com","http":{"paths":[{"backend":{"service":{"name":"superchat-code","port":{"number":8000}}},"path":"/user-management-loader.js","pathType":"Exact"},{"backend":{"service":{"name":"superchat-code","port":{"number":8000}}},"path":"/user-management.js","pathType":"Exact"},{"backend":{"service":{"name":"user-management-api","port":{"number":3001}}},"path":"/api/user-management","pathType":"Prefix"},{"backend":{"service":{"name":"oauth2-proxy-superchat","port":{"number":4180}}},"path":"/","pathType":"Prefix"}]}}]}}
+  creationTimestamp: "2025-09-25T13:39:25Z"
+  finalizers:
+  - ingress.k8s.aws/resources
+  generation: 5
+  name: superchat-code
+  namespace: development
+  resourceVersion: "1084630"
+  uid: a9c72c4b-b3f4-4570-877e-f73c3b76008e
+spec:
+  ingressClassName: alb
+  rules:
+  - host: code.mbo9.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: superchat-code
+            port:
+              number: 8000
+        path: /user-management-loader.js
+        pathType: Exact
+      - backend:
+          service:
+            name: superchat-code
+            port:
+              number: 8000
+        path: /user-management.js
+        pathType: Exact
+      - backend:
+          service:
+            name: user-management-api
+            port:
+              number: 3001
+        path: /api/user-management
+        pathType: Prefix
+      - backend:
+          service:
+            name: oauth2-proxy-superchat
+            port:
+              number: 4180
+        path: /
+        pathType: Prefix
+status:
+  loadBalancer:
+    ingress:
+    - hostname: k8s-developm-supercha-c070831a72-311051807.eu-west-2.elb.amazonaws.com
