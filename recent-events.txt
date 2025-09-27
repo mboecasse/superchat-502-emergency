@@ -1,0 +1,44 @@
+LAST SEEN   TYPE      REASON                    OBJECT                                                MESSAGE
+5m42s       Warning   LoggingDisabled           pod/code-server-auto-shutdown-29316000-l25r9          Disabled logging because aws-logging configmap was not found. configmap "aws-logging" not found
+5m4s        Normal    Scheduled                 pod/code-server-auto-shutdown-29316000-l25r9          Successfully assigned development/code-server-auto-shutdown-29316000-l25r9 to fargate-ip-10-0-11-24.eu-west-2.compute.internal
+21m         Warning   LoggingDisabled           pod/superchat-code-9d98c8dc4-l42rz                    Disabled logging because aws-logging configmap was not found. configmap "aws-logging" not found
+15m         Normal    Scheduled                 pod/superchat-code-546fdcf758-qsw8n                   Successfully assigned development/superchat-code-546fdcf758-qsw8n to fargate-ip-10-0-11-118.eu-west-2.compute.internal
+15m         Warning   LoggingDisabled           pod/superchat-code-546fdcf758-qsw8n                   Disabled logging because aws-logging configmap was not found. configmap "aws-logging" not found
+20m         Normal    Scheduled                 pod/superchat-code-9d98c8dc4-l42rz                    Successfully assigned development/superchat-code-9d98c8dc4-l42rz to fargate-ip-10-0-10-88.eu-west-2.compute.internal
+22m         Warning   FailedMount               pod/superchat-code-9d98c8dc4-zqjb2                    MountVolume.SetUp failed for volume "nginx-config" : configmap "superchat-nginx-config" not found
+21m         Normal    SuccessfulCreate          replicaset/superchat-code-9d98c8dc4                   Created pod: superchat-code-9d98c8dc4-l42rz
+20m         Normal    Pulling                   pod/superchat-code-9d98c8dc4-l42rz                    Pulling image "busybox:latest"
+20m         Normal    Pulled                    pod/superchat-code-9d98c8dc4-l42rz                    Successfully pulled image "busybox:latest" in 2.098s (2.098s including waiting). Image size: 2223686 bytes.
+20m         Normal    Started                   pod/superchat-code-9d98c8dc4-l42rz                    Started container inject-scripts
+20m         Normal    Created                   pod/superchat-code-9d98c8dc4-l42rz                    Created container: inject-scripts
+20m         Normal    Pulling                   pod/superchat-code-9d98c8dc4-l42rz                    Pulling image "329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed"
+20m         Normal    Pulled                    pod/superchat-code-9d98c8dc4-l42rz                    Successfully pulled image "329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed" in 16.491s (16.491s including waiting). Image size: 233612240 bytes.
+20m         Normal    Created                   pod/superchat-code-9d98c8dc4-l42rz                    Created container: superchat-code
+20m         Normal    Started                   pod/superchat-code-9d98c8dc4-l42rz                    Started container superchat-code
+15m         Normal    SuccessfulCreate          replicaset/superchat-code-546fdcf758                  Created pod: superchat-code-546fdcf758-qsw8n
+15m         Normal    ScalingReplicaSet         deployment/superchat-code                             Scaled up replica set superchat-code-546fdcf758 to 1
+15m         Normal    Pulling                   pod/superchat-code-546fdcf758-qsw8n                   Pulling image "busybox:latest"
+15m         Normal    Started                   pod/superchat-code-546fdcf758-qsw8n                   Started container inject-scripts
+15m         Normal    Created                   pod/superchat-code-546fdcf758-qsw8n                   Created container: inject-scripts
+15m         Normal    Pulling                   pod/superchat-code-546fdcf758-qsw8n                   Pulling image "329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed"
+15m         Normal    Pulled                    pod/superchat-code-546fdcf758-qsw8n                   Successfully pulled image "busybox:latest" in 2.083s (2.083s including waiting). Image size: 2223686 bytes.
+14m         Normal    Created                   pod/superchat-code-546fdcf758-qsw8n                   Created container: superchat-code
+14m         Normal    Started                   pod/superchat-code-546fdcf758-qsw8n                   Started container superchat-code
+14m         Normal    Pulled                    pod/superchat-code-546fdcf758-qsw8n                   Successfully pulled image "329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed" in 10.101s (10.101s including waiting). Image size: 233612240 bytes.
+14m         Normal    ScalingReplicaSet         deployment/superchat-code                             Scaled down replica set superchat-code-9d98c8dc4 to 0 from 1
+14m         Normal    SuccessfulDelete          replicaset/superchat-code-9d98c8dc4                   Deleted pod: superchat-code-9d98c8dc4-l42rz
+14m         Normal    Killing                   pod/superchat-code-9d98c8dc4-l42rz                    Stopping container superchat-code
+14m         Normal    SuccessfullyReconciled    targetgroupbinding/k8s-developm-supercha-7f430bc581   Successfully reconciled
+5m43s       Normal    SuccessfulCreate          job/code-server-auto-shutdown-29316000                Created pod: code-server-auto-shutdown-29316000-l25r9
+5m43s       Normal    SuccessfulCreate          cronjob/code-server-auto-shutdown                     Created job code-server-auto-shutdown-29316000
+5m4s        Normal    Pulling                   pod/code-server-auto-shutdown-29316000-l25r9          Pulling image "bitnami/kubectl:latest"
+4m58s       Normal    Started                   pod/code-server-auto-shutdown-29316000-l25r9          Started container auto-shutdown
+4m58s       Normal    Created                   pod/code-server-auto-shutdown-29316000-l25r9          Created container: auto-shutdown
+4m58s       Normal    Pulled                    pod/code-server-auto-shutdown-29316000-l25r9          Successfully pulled image "bitnami/kubectl:latest" in 5.622s (5.622s including waiting). Image size: 113092016 bytes.
+4m54s       Normal    Completed                 job/code-server-auto-shutdown-29316000                Job completed
+4m54s       Normal    SuccessfulDelete          cronjob/code-server-auto-shutdown                     Deleted job code-server-auto-shutdown-29315940
+4m54s       Normal    SawCompletedJob           cronjob/code-server-auto-shutdown                     Saw completed job: code-server-auto-shutdown-29316000, condition: Complete
+3m57s       Normal    ExternalProvisioning      persistentvolumeclaim/superchat-code-pvc              Waiting for a volume to be created either by the external provisioner 'efs.csi.aws.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+2m27s       Normal    ExternalProvisioning      persistentvolumeclaim/claude-code-efs-pvc             Waiting for a volume to be created either by the external provisioner 'efs.csi.aws.com' or manually by the system administrator. If volume creation is delayed, please verify that the provisioner is running and correctly registered.
+2m27s       Normal    WaitForFirstConsumer      persistentvolumeclaim/code-server-workspace           waiting for first consumer to be created before binding
+2m17s       Warning   FailedGetResourceMetric   horizontalpodautoscaler/code-server-autoscaler        failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)

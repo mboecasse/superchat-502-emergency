@@ -1,0 +1,141 @@
+Name:                 superchat-code-546fdcf758-qsw8n
+Namespace:            development
+Priority:             2000001000
+Priority Class Name:  system-node-critical
+Service Account:      claude-code-sa
+Node:                 fargate-ip-10-0-11-118.eu-west-2.compute.internal/10.0.11.118
+Start Time:           Sat, 27 Sep 2025 08:50:32 +0100
+Labels:               app=superchat-code
+                      eks.amazonaws.com/fargate-profile=claude-cloudforge-fargate-profile
+                      pod-template-hash=546fdcf758
+Annotations:          CapacityProvisioned: 0.25vCPU 1GB
+                      Logging: LoggingDisabled: LOGGING_CONFIGMAP_NOT_FOUND
+                      kubectl.kubernetes.io/restartedAt: 2025-09-27T07:42:21+01:00
+Status:               Running
+IP:                   10.0.11.118
+IPs:
+  IP:           10.0.11.118
+Controlled By:  ReplicaSet/superchat-code-546fdcf758
+Init Containers:
+  inject-scripts:
+    Container ID:  containerd://e637db990650976bc6e5843db195598d5aa34463d6ee49541a93167e0b900c55
+    Image:         busybox:latest
+    Image ID:      docker.io/library/busybox@sha256:d82f458899c9696cb26a7c02d5568f81c8c8223f8661bb2a7988b269c8b9051e
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      /bin/sh
+      -c
+      echo "Setting up user management scripts..."
+      
+      # Copy loader script
+      cp /loader/user-management-loader.js /app/frontend/public/user-management-loader.js
+      
+      # Copy main script
+      cp /main/user-management-client.js /app/frontend/public/user-management.js
+      
+      echo "Scripts copied to public folder:"
+      ls -la /app/frontend/public/
+      
+      echo "Setup complete!"
+      
+    State:          Terminated
+      Reason:       Completed
+      Exit Code:    0
+      Started:      Sat, 27 Sep 2025 08:50:35 +0100
+      Finished:     Sat, 27 Sep 2025 08:50:35 +0100
+    Ready:          True
+    Restart Count:  0
+    Environment:
+      AWS_STS_REGIONAL_ENDPOINTS:   regional
+      AWS_DEFAULT_REGION:           eu-west-2
+      AWS_REGION:                   eu-west-2
+      AWS_ROLE_ARN:                 arn:aws:iam::329599649426:role/claude-cloudforge-bedrock-access
+      AWS_WEB_IDENTITY_TOKEN_FILE:  /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+    Mounts:
+      /app/frontend/public from frontend-public (rw)
+      /loader from loader-script (rw)
+      /main from main-script (rw)
+      /var/run/secrets/eks.amazonaws.com/serviceaccount from aws-iam-token (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-qlmkp (ro)
+Containers:
+  superchat-code:
+    Container ID:   containerd://10514a2f87e2623585aa092ec729d39d6e3fd4df539e9ec1c64fbc99701e7260
+    Image:          329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed
+    Image ID:       329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code@sha256:dacfee7f14ae905fa17b5f6d14e2e1fbad6df21622fdd09212bf28d7b3495498
+    Port:           8000/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Sat, 27 Sep 2025 08:50:45 +0100
+    Ready:          True
+    Restart Count:  0
+    Limits:
+      cpu:     500m
+      memory:  1Gi
+    Requests:
+      cpu:     250m
+      memory:  512Mi
+    Environment:
+      AWS_REGION:                   eu-west-2
+      AWS_STS_REGIONAL_ENDPOINTS:   regional
+      AWS_ROLE_ARN:                 arn:aws:iam::329599649426:role/claude-cloudforge-bedrock-access
+      AWS_WEB_IDENTITY_TOKEN_FILE:  /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+    Mounts:
+      /app/frontend/public from frontend-public (rw)
+      /etc/nginx/http.d/default.conf from nginx-config (rw,path="default.conf")
+      /var/run/secrets/eks.amazonaws.com/serviceaccount from aws-iam-token (ro)
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-qlmkp (ro)
+Conditions:
+  Type                        Status
+  PodReadyToStartContainers   True 
+  Initialized                 True 
+  Ready                       True 
+  ContainersReady             True 
+  PodScheduled                True 
+Volumes:
+  aws-iam-token:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  86400
+  user-management-scripts:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      user-management-scripts
+    Optional:  false
+  loader-script:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      user-management-loader-script
+    Optional:  false
+  main-script:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      user-management-script
+    Optional:  false
+  nginx-config:
+    Type:      ConfigMap (a volume populated by a ConfigMap)
+    Name:      superchat-nginx-config
+    Optional:  false
+  frontend-public:
+    Type:       EmptyDir (a temporary directory that shares a pod's lifetime)
+    Medium:     
+    SizeLimit:  <unset>
+  kube-api-access-qlmkp:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason           Age   From               Message
+  ----     ------           ----  ----               -------
+  Warning  LoggingDisabled  12m   fargate-scheduler  Disabled logging because aws-logging configmap was not found. configmap "aws-logging" not found
+  Normal   Scheduled        12m   fargate-scheduler  Successfully assigned development/superchat-code-546fdcf758-qsw8n to fargate-ip-10-0-11-118.eu-west-2.compute.internal
+  Normal   Pulling          12m   kubelet            Pulling image "busybox:latest"
+  Normal   Pulled           12m   kubelet            Successfully pulled image "busybox:latest" in 2.083s (2.083s including waiting). Image size: 2223686 bytes.
+  Normal   Created          12m   kubelet            Created container: inject-scripts
+  Normal   Started          12m   kubelet            Started container inject-scripts
+  Normal   Pulling          12m   kubelet            Pulling image "329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed"
+  Normal   Pulled           11m   kubelet            Successfully pulled image "329599649426.dkr.ecr.eu-west-2.amazonaws.com/superchat-code:fixed" in 10.101s (10.101s including waiting). Image size: 233612240 bytes.
+  Normal   Created          11m   kubelet            Created container: superchat-code
+  Normal   Started          11m   kubelet            Started container superchat-code
